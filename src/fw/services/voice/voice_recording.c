@@ -84,6 +84,9 @@ static bool s_playback_owned_by_app;
 static int s_pcm_export_fd = -1;
 static VoiceRecordingId s_pcm_export_id = VOICE_RECORDING_ID_INVALID;
 static PebbleTask s_pcm_export_owner_task = PebbleTask_Unknown;
+// Owner of the recording being exported, captured while the file could still be
+// opened. See voice_recording_is_owned_by().
+static Uuid s_pcm_export_app_uuid = UUID_INVALID_INIT;
 static uint32_t s_pcm_export_remaining;
 static uint32_t s_pcm_export_offset;
 static int16_t *s_pcm_export_frame;
@@ -105,6 +108,7 @@ static void prv_pcm_export_cleanup_locked(void) {
   }
   s_pcm_export_id = VOICE_RECORDING_ID_INVALID;
   s_pcm_export_owner_task = PebbleTask_Unknown;
+  s_pcm_export_app_uuid = UUID_INVALID;
   s_pcm_export_remaining = 0;
   s_pcm_export_offset = 0;
   s_pcm_export_frame_bytes = 0;
@@ -445,6 +449,13 @@ bool voice_recording_is_owned_by(VoiceRecordingId id, const Uuid *app_uuid) {
   bool owned;
   if ((s_active_id != VOICE_RECORDING_ID_INVALID) && (id == s_active_id)) {
     owned = uuid_equal(&s_app_uuid, app_uuid);
+  } else if ((s_pcm_export_fd >= 0) && (s_pcm_export_id == id)) {
+    // A PCM export holds this recording open for the whole stream, and PFS refuses
+    // a second open of a file already in use (E_BUSY). Reading the metadata again
+    // would therefore fail and lock the owning app out of its own recording — for
+    // read_pcm from the second call onwards, and for play/delete meanwhile. The
+    // uuid was captured at offset zero, while the file could still be opened.
+    owned = uuid_equal(&s_pcm_export_app_uuid, app_uuid);
   } else {
     VoiceRecordingStorageMetadata metadata;
     owned = voice_recording_storage_get_metadata(id, &metadata) &&
@@ -520,6 +531,7 @@ uint32_t voice_recording_read_pcm(VoiceRecordingId id, uint32_t offset, void *bu
     }
     s_pcm_export_id = id;
     s_pcm_export_owner_task = pebble_task_get_current();
+    s_pcm_export_app_uuid = metadata.app_uuid;
   } else if ((s_pcm_export_fd < 0) || (s_pcm_export_id != id) ||
              (s_pcm_export_offset != offset)) {
     goto unlock;
