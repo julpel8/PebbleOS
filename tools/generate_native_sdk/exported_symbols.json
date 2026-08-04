@@ -4,7 +4,7 @@
               "You should also make sure you are obeying our API design guidelines:",
               "https://pebbletechnology.atlassian.net/wiki/display/DEV/SDK+API+Design+Guidelines"
             ],
-  "revision" : "110",
+  "revision" : "112",
   "version" : "2.0",
   "files": [
     "include/pbl/drivers/ambient_light.h",
@@ -1110,6 +1110,26 @@
               "type": "function",
               "name": "audio_recording_transcribe",
               "addedRevision": "110"
+            }, {
+              "type": "function",
+              "name": "audio_recording_read",
+              "addedRevision": "111"
+            }, {
+              "type": "define",
+              "name": "AUDIO_RECORDING_PCM_SAMPLE_RATE",
+              "addedRevision": "112"
+            }, {
+              "type": "define",
+              "name": "AUDIO_RECORDING_PCM_CHANNELS",
+              "addedRevision": "112"
+            }, {
+              "type": "define",
+              "name": "AUDIO_RECORDING_PCM_BITS_PER_SAMPLE",
+              "addedRevision": "112"
+            }, {
+              "type": "function",
+              "name": "audio_recording_read_pcm",
+              "addedRevision": "112"
             }
           ]
         }, {

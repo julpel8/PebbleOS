@@ -173,9 +173,11 @@ typedef enum {
 // sdk.major:0x5 .minor:0x69 -- Add app_touch_navigation_enable() opt-in for third-party touch nav (rev 108)
 // sdk.major:0x5 .minor:0x6a -- Add HRV sampling API (health_service_set_hrv_sample_period) (rev 109)
 // sdk.major:0x5 .minor:0x6b -- Add on-device audio recording API (audio_recording_*) (rev 110)
+// sdk.major:0x5 .minor:0x6c -- Add audio_recording_read() for app-owned recording export (rev 111)
+// sdk.major:0x5 .minor:0x6d -- Add decoded PCM recording export (rev 112)
 
 #define PROCESS_INFO_CURRENT_SDK_VERSION_MAJOR 0x5
-#define PROCESS_INFO_CURRENT_SDK_VERSION_MINOR 0x6b
+#define PROCESS_INFO_CURRENT_SDK_VERSION_MINOR 0x6d
 
 // The first SDK to ship with 2.x APIs
 #define PROCESS_INFO_FIRST_2X_SDK_VERSION_MAJOR 0x4
@@ -284,4 +286,3 @@ typedef struct __attribute__((__packed__)) {
     uint8_t byte15;
   } uuid;                           //!< The process's UUID
 } LegacyPebbleAppInfo;
-

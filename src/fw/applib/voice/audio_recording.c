@@ -54,6 +54,24 @@ uint32_t audio_recording_list(AudioRecordingInfo *recordings, uint32_t max_recor
 #endif
 }
 
+uint32_t audio_recording_read(AudioRecordingId recording_id, uint32_t offset, void *buffer,
+                              uint32_t buffer_size) {
+#ifdef CONFIG_MIC
+  return sys_audio_recording_read(recording_id, offset, buffer, buffer_size);
+#else
+  return 0;
+#endif
+}
+
+uint32_t audio_recording_read_pcm(AudioRecordingId recording_id, uint32_t offset, void *buffer,
+                                  uint32_t buffer_size) {
+#ifdef CONFIG_MIC
+  return sys_audio_recording_read_pcm(recording_id, offset, buffer, buffer_size);
+#else
+  return 0;
+#endif
+}
+
 bool audio_recording_delete(AudioRecordingId recording_id) {
 #ifdef CONFIG_MIC
   return sys_audio_recording_delete(recording_id);

@@ -92,6 +92,42 @@ DEFINE_SYSCALL(uint32_t, sys_audio_recording_list, AudioRecordingInfo *recording
 #endif
 }
 
+DEFINE_SYSCALL(uint32_t, sys_audio_recording_read, AudioRecordingId recording_id,
+               uint32_t offset, void *buffer, uint32_t buffer_size) {
+#ifdef CONFIG_MIC
+  if (!buffer || (buffer_size == 0)) {
+    return 0;
+  }
+  if (PRIVILEGE_WAS_ELEVATED) {
+    if (!prv_current_app_owns_recording(recording_id)) {
+      return 0;
+    }
+    syscall_assert_userspace_buffer(buffer, buffer_size);
+  }
+  return voice_recording_read(recording_id, offset, buffer, buffer_size);
+#else
+  return 0;
+#endif
+}
+
+DEFINE_SYSCALL(uint32_t, sys_audio_recording_read_pcm, AudioRecordingId recording_id,
+               uint32_t offset, void *buffer, uint32_t buffer_size) {
+#ifdef CONFIG_MIC
+  if (!buffer || (buffer_size == 0)) {
+    return 0;
+  }
+  if (PRIVILEGE_WAS_ELEVATED) {
+    if (!prv_current_app_owns_recording(recording_id)) {
+      return 0;
+    }
+    syscall_assert_userspace_buffer(buffer, buffer_size);
+  }
+  return voice_recording_read_pcm(recording_id, offset, buffer, buffer_size);
+#else
+  return 0;
+#endif
+}
+
 DEFINE_SYSCALL(bool, sys_audio_recording_delete, AudioRecordingId recording_id) {
 #ifdef CONFIG_MIC
   if (PRIVILEGE_WAS_ELEVATED && !prv_current_app_owns_recording(recording_id)) {

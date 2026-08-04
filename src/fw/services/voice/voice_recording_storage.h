@@ -55,6 +55,11 @@ int voice_recording_storage_read_frame(int fd, uint32_t *remaining_bytes, uint8_
 bool voice_recording_storage_get_metadata(VoiceRecordingId id,
                                           VoiceRecordingStorageMetadata *out);
 
+//! Read bytes from a stored recording container, including its header.
+//! @return number of bytes read, or 0 at end of file / on failure.
+uint32_t voice_recording_storage_read(VoiceRecordingId id, uint32_t offset, void *buffer,
+                                      uint32_t buffer_size);
+
 //! Fill an array with metadata from valid stored recordings.
 //! @return number of entries written to @p out.
 uint32_t voice_recording_storage_list(VoiceRecordingInfo *out, uint32_t max);

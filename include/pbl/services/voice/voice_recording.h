@@ -135,6 +135,18 @@ uint32_t voice_recording_list_page(VoiceRecordingInfo *out, uint32_t max, uint32
 //! Enumerate stored recordings belonging to \a app_uuid.
 uint32_t voice_recording_list_owned_by(VoiceRecordingInfo *out, uint32_t max, const Uuid *app_uuid);
 
+//! Read bytes from a stored recording container, including its header.
+//! @return number of bytes read, or 0 at end of file / on failure.
+uint32_t voice_recording_read(VoiceRecordingId id, uint32_t offset, void *buffer,
+                              uint32_t buffer_size);
+
+//! Decode a sequential slice of a stored recording to mono 16-bit little-endian PCM at 16 kHz.
+//! A new stream starts at offset zero. Later calls must use the next returned byte offset.
+//! The decoder stream is released automatically at end-of-file or when the owning task exits.
+//! @return number of decoded PCM bytes written, or 0 on failure / end-of-file.
+uint32_t voice_recording_read_pcm(VoiceRecordingId id, uint32_t offset, void *buffer,
+                                  uint32_t buffer_size);
+
 //! Delete a stored recording.
 //! @return true on success.
 bool voice_recording_delete(VoiceRecordingId id);

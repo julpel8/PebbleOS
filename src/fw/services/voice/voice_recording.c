@@ -7,6 +7,7 @@
 #include "voice_recording_storage.h"
 
 #include "board/board.h"
+#include "kernel/pbl_malloc.h"
 #include <pbl/drivers/mic.h>
 #include <pbl/drivers/rtc.h>
 #include "kernel/event_loop.h"
@@ -77,6 +78,38 @@ static TimerID s_max_timer = TIMER_INVALID_ID;
 // True while the active playback was started by a (non-system) app: it is stopped when that app
 // terminates, and only then may an elevated caller stop playback.
 static bool s_playback_owned_by_app;
+
+// Sequential Speex -> PCM export state. The decoder is intentionally kept alive
+// across syscalls because Speex prediction state spans frames.
+static int s_pcm_export_fd = -1;
+static VoiceRecordingId s_pcm_export_id = VOICE_RECORDING_ID_INVALID;
+static PebbleTask s_pcm_export_owner_task = PebbleTask_Unknown;
+static uint32_t s_pcm_export_remaining;
+static uint32_t s_pcm_export_offset;
+static int16_t *s_pcm_export_frame;
+static uint32_t s_pcm_export_frame_bytes;
+static uint32_t s_pcm_export_frame_offset;
+
+static void prv_pcm_export_cleanup_locked(void) {
+  const bool decoder_owned = (s_pcm_export_fd >= 0) || (s_pcm_export_frame != NULL);
+  if (s_pcm_export_fd >= 0) {
+    pfs_close(s_pcm_export_fd);
+    s_pcm_export_fd = -1;
+  }
+  if (decoder_owned) {
+    voice_speex_decoder_deinit();
+  }
+  if (s_pcm_export_frame) {
+    kernel_free(s_pcm_export_frame);
+    s_pcm_export_frame = NULL;
+  }
+  s_pcm_export_id = VOICE_RECORDING_ID_INVALID;
+  s_pcm_export_owner_task = PebbleTask_Unknown;
+  s_pcm_export_remaining = 0;
+  s_pcm_export_offset = 0;
+  s_pcm_export_frame_bytes = 0;
+  s_pcm_export_frame_offset = 0;
+}
 
 static void prv_stop_callback(void *data);
 
@@ -253,6 +286,14 @@ VoiceRecordingId voice_recording_start(void) {
     goto unlock;
   }
 
+  // Capturing a new memo is a direct user action and must not be blocked by a
+  // phone transfer that stalled or was abandoned. The next export request can
+  // restart decoding from offset zero.
+  if (s_pcm_export_fd >= 0) {
+    PBL_LOG_DBG("Cancelling unfinished PCM export to start recording");
+    prv_pcm_export_cleanup_locked();
+  }
+
   if (mic_is_running(MIC)) {
     PBL_LOG_WRN("Microphone busy, cannot start recording");
     s_last_error = VoiceRecordingError_MicBusy;
@@ -385,6 +426,9 @@ void voice_recording_cleanup_task(PebbleTask task) {
     voice_recording_playback_stop();
     s_playback_owned_by_app = false;
   }
+  if (s_pcm_export_owner_task == task) {
+    prv_pcm_export_cleanup_locked();
+  }
   mutex_unlock(s_lock);
 }
 
@@ -425,9 +469,112 @@ uint32_t voice_recording_list_owned_by(VoiceRecordingInfo *out, uint32_t max,
   return voice_recording_storage_list_owned_by(out, max, app_uuid);
 }
 
+uint32_t voice_recording_read(VoiceRecordingId id, uint32_t offset, void *buffer,
+                              uint32_t buffer_size) {
+  mutex_lock(s_lock);
+  const uint32_t bytes_read =
+      voice_recording_storage_read(id, offset, buffer, buffer_size);
+  mutex_unlock(s_lock);
+  return bytes_read;
+}
+
+uint32_t voice_recording_read_pcm(VoiceRecordingId id, uint32_t offset, void *buffer,
+                                  uint32_t buffer_size) {
+  if (!buffer || (buffer_size < sizeof(int16_t))) {
+    return 0;
+  }
+  // Never split a signed 16-bit sample between calls.
+  buffer_size &= ~(uint32_t)(sizeof(int16_t) - 1);
+
+  mutex_lock(s_lock);
+  uint32_t written = 0;
+
+  if (offset == 0) {
+    // Offset zero is an explicit restart, which also recovers an interrupted transfer.
+    prv_pcm_export_cleanup_locked();
+    if ((s_active_id != VOICE_RECORDING_ID_INVALID) || voice_recording_playback_is_active()) {
+      goto unlock;
+    }
+
+    VoiceRecordingStorageMetadata metadata;
+    if (!voice_recording_storage_get_metadata(id, &metadata) ||
+        (metadata.channels != 1) || (metadata.speex.sample_rate != 16000)) {
+      goto unlock;
+    }
+
+    s_pcm_export_fd = voice_recording_storage_open_payload(id, &s_pcm_export_remaining);
+    if ((s_pcm_export_fd < 0) || !voice_speex_decoder_init()) {
+      prv_pcm_export_cleanup_locked();
+      goto unlock;
+    }
+
+    const int frame_samples = voice_speex_get_decoder_frame_size();
+    if ((frame_samples <= 0) || ((uint16_t)frame_samples != metadata.speex.frame_size)) {
+      prv_pcm_export_cleanup_locked();
+      goto unlock;
+    }
+    s_pcm_export_frame = kernel_malloc((size_t)frame_samples * sizeof(int16_t));
+    if (!s_pcm_export_frame) {
+      prv_pcm_export_cleanup_locked();
+      goto unlock;
+    }
+    s_pcm_export_id = id;
+    s_pcm_export_owner_task = pebble_task_get_current();
+  } else if ((s_pcm_export_fd < 0) || (s_pcm_export_id != id) ||
+             (s_pcm_export_offset != offset)) {
+    goto unlock;
+  }
+
+  while (written < buffer_size) {
+    if (s_pcm_export_frame_offset < s_pcm_export_frame_bytes) {
+      const uint32_t available = s_pcm_export_frame_bytes - s_pcm_export_frame_offset;
+      const uint32_t capacity = buffer_size - written;
+      const uint32_t amount = (available < capacity) ? available : capacity;
+      memcpy((uint8_t *)buffer + written,
+             (uint8_t *)s_pcm_export_frame + s_pcm_export_frame_offset, amount);
+      s_pcm_export_frame_offset += amount;
+      s_pcm_export_offset += amount;
+      written += amount;
+      continue;
+    }
+
+    if (s_pcm_export_remaining == 0) {
+      break;
+    }
+    uint8_t encoded[VOICE_SPEEX_MAX_ENCODED_FRAME_SIZE];
+    const int encoded_bytes = voice_recording_storage_read_frame(
+        s_pcm_export_fd, &s_pcm_export_remaining, encoded, sizeof(encoded));
+    if (encoded_bytes <= 0) {
+      PBL_LOG_WRN("PCM export encountered a corrupt recording frame");
+      prv_pcm_export_cleanup_locked();
+      break;
+    }
+    const int samples = voice_speex_decode_frame(encoded, encoded_bytes, s_pcm_export_frame);
+    if (samples <= 0) {
+      PBL_LOG_WRN("PCM export failed to decode a Speex frame");
+      prv_pcm_export_cleanup_locked();
+      break;
+    }
+    s_pcm_export_frame_bytes = (uint32_t)samples * sizeof(int16_t);
+    s_pcm_export_frame_offset = 0;
+  }
+
+  if ((s_pcm_export_remaining == 0) &&
+      (s_pcm_export_frame_offset == s_pcm_export_frame_bytes)) {
+    prv_pcm_export_cleanup_locked();
+  }
+
+unlock:
+  mutex_unlock(s_lock);
+  return written;
+}
+
 bool voice_recording_delete(VoiceRecordingId id) {
   mutex_lock(s_lock);
   voice_recording_playback_stop();
+  if (s_pcm_export_id == id) {
+    prv_pcm_export_cleanup_locked();
+  }
   bool deleted = false;
   // Removing an open PFS file panics; the transcription stream keeps the recording open
   // for its whole (real-time) duration.
@@ -447,6 +594,7 @@ void voice_recording_delete_owned_by(const Uuid *app_uuid) {
   mutex_lock(s_lock);
   // Playback may hold one of this app's files open; removing an open PFS file panics.
   voice_recording_playback_stop();
+  prv_pcm_export_cleanup_locked();
   // Skip a recording held open by an active transcription stream (see voice_recording_delete).
   voice_recording_storage_delete_owned_by(app_uuid, voice_transcribing_recording_id());
   mutex_unlock(s_lock);
@@ -454,6 +602,8 @@ void voice_recording_delete_owned_by(const Uuid *app_uuid) {
 
 bool voice_recording_play(VoiceRecordingId id) {
   mutex_lock(s_lock);
+  // A user-requested playback supersedes an unfinished phone export.
+  prv_pcm_export_cleanup_locked();
   const bool started =
       (s_active_id == VOICE_RECORDING_ID_INVALID) && voice_recording_playback_start(id);
   if (started) {

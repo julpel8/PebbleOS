@@ -294,6 +294,34 @@ bool voice_recording_storage_get_metadata(VoiceRecordingId id,
   return ok;
 }
 
+uint32_t voice_recording_storage_read(VoiceRecordingId id, uint32_t offset, void *buffer,
+                                      uint32_t buffer_size) {
+  if (!buffer || (buffer_size == 0)) {
+    return 0;
+  }
+
+  char name[VOICE_REC_NAME_MAX];
+  prv_make_name(name, sizeof(name), VOICE_REC_PREFIX, id);
+  const int fd = pfs_open(name, OP_FLAG_READ, FILE_TYPE_STATIC, 0);
+  if (fd < 0) {
+    return 0;
+  }
+
+  VoiceRecordingHeader header;
+  const uint32_t file_size = pfs_get_file_size(fd);
+  uint32_t bytes_read = 0;
+  if (prv_read_header(fd, &header) && (offset < file_size)) {
+    const uint32_t remaining = file_size - offset;
+    const uint32_t to_read = (buffer_size < remaining) ? buffer_size : remaining;
+    if ((pfs_seek(fd, offset, FSeekSet) >= 0) &&
+        (pfs_read(fd, buffer, to_read) == (int)to_read)) {
+      bytes_read = to_read;
+    }
+  }
+  pfs_close(fd);
+  return bytes_read;
+}
+
 static bool prv_read_info(const char *name, VoiceRecordingInfo *info) {
   const int fd = pfs_open(name, OP_FLAG_READ, FILE_TYPE_STATIC, 0);
   if (fd < 0) {

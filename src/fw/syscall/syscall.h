@@ -110,6 +110,10 @@ bool sys_audio_recording_stop(AudioRecordingId recording_id);
 void sys_audio_recording_cancel(AudioRecordingId recording_id);
 bool sys_audio_recording_is_active(void);
 uint32_t sys_audio_recording_list(AudioRecordingInfo *recordings, uint32_t max_recordings);
+uint32_t sys_audio_recording_read(AudioRecordingId recording_id, uint32_t offset, void *buffer,
+                                  uint32_t buffer_size);
+uint32_t sys_audio_recording_read_pcm(AudioRecordingId recording_id, uint32_t offset, void *buffer,
+                                      uint32_t buffer_size);
 bool sys_audio_recording_delete(AudioRecordingId recording_id);
 bool sys_audio_recording_play(AudioRecordingId recording_id);
 void sys_audio_recording_stop_playback(void);
