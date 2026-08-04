@@ -4,7 +4,7 @@
               "You should also make sure you are obeying our API design guidelines:",
               "https://pebbletechnology.atlassian.net/wiki/display/DEV/SDK+API+Design+Guidelines"
             ],
-  "revision" : "111",
+  "revision" : "113",
   "version" : "2.0",
   "files": [
     "include/pbl/drivers/ambient_light.h",
@@ -1111,12 +1111,32 @@
               "type": "function",
               "name": "audio_recording_transcribe",
               "addedRevision": "110"
+            }, {
+              "type": "function",
+              "name": "audio_recording_read",
+              "addedRevision": "111"
+            }, {
+              "type": "define",
+              "name": "AUDIO_RECORDING_PCM_SAMPLE_RATE",
+              "addedRevision": "112"
+            }, {
+              "type": "define",
+              "name": "AUDIO_RECORDING_PCM_CHANNELS",
+              "addedRevision": "112"
+            }, {
+              "type": "define",
+              "name": "AUDIO_RECORDING_PCM_BITS_PER_SAMPLE",
+              "addedRevision": "112"
+            }, {
+              "type": "function",
+              "name": "audio_recording_read_pcm",
+              "addedRevision": "112"
             }
           ]
         }, {
           "type": "group",
           "name": "SystemMetrics",
-          "addedRevision": "111",
+          "addedRevision": "113",
           "exports": [
             {
               "type": "type",
@@ -1127,15 +1147,15 @@
             }, {
               "type": "function",
               "name": "battery_metrics_get",
-              "addedRevision": "111"
+              "addedRevision": "113"
             }, {
               "type": "function",
               "name": "cpu_metrics_get",
-              "addedRevision": "111"
+              "addedRevision": "113"
             }, {
               "type": "function",
               "name": "cpu_metrics_load_percent",
-              "addedRevision": "111"
+              "addedRevision": "113"
             }
           ]
         }, {

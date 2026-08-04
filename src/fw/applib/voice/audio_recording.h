@@ -66,6 +66,34 @@ bool audio_recording_is_active(void);
 //! @return number of recordings written to \a recordings
 uint32_t audio_recording_list(AudioRecordingInfo *recordings, uint32_t max_recordings);
 
+//! Read bytes from a recording created by the calling app.
+//! The byte stream is a versioned Pebble recording container; callers should use
+//! \ref AudioRecordingInfo.size_bytes to detect completion.
+//! @param recording_id id of a stored recording
+//! @param offset byte offset within the recording container
+//! @param buffer caller-provided destination buffer
+//! @param buffer_size maximum bytes to read
+//! @return number of bytes read, or 0 at end of file / on failure
+uint32_t audio_recording_read(AudioRecordingId recording_id, uint32_t offset, void *buffer,
+                              uint32_t buffer_size);
+
+//! Format returned by \ref audio_recording_read_pcm.
+#define AUDIO_RECORDING_PCM_SAMPLE_RATE (16000)
+#define AUDIO_RECORDING_PCM_CHANNELS (1)
+#define AUDIO_RECORDING_PCM_BITS_PER_SAMPLE (16)
+
+//! Decode a recording created by the calling app to iPhone/Android-compatible PCM.
+//! Calls are sequential: begin at offset 0, then add the number of bytes returned to the
+//! next offset. The total decoded size is
+//! `AudioRecordingInfo.duration_ms * AUDIO_RECORDING_PCM_SAMPLE_RATE * 2 / 1000`.
+//! @param recording_id id of a stored recording
+//! @param offset decoded PCM byte offset; zero starts or restarts the decoder
+//! @param buffer caller-provided destination buffer
+//! @param buffer_size maximum decoded bytes to read
+//! @return number of mono signed 16-bit little-endian PCM bytes, or 0 on failure/end
+uint32_t audio_recording_read_pcm(AudioRecordingId recording_id, uint32_t offset, void *buffer,
+                                  uint32_t buffer_size);
+
 //! Delete a recording created by the calling app.
 //! @param recording_id id of a stored recording
 //! @return true if the recording was deleted
