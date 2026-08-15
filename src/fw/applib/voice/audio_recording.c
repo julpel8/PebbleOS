@@ -16,72 +16,43 @@
 #include <pbl/logging/logging.h>
 #endif
 
+// The syscalls below already return the no-mic fallbacks when CONFIG_MIC is unset, so these
+// wrappers need no guard of their own.
+
 AudioRecordingId audio_recording_start(void) {
-#ifdef CONFIG_MIC
   return sys_audio_recording_start();
-#else
-  return AUDIO_RECORDING_ID_INVALID;
-#endif
 }
 
 bool audio_recording_stop(AudioRecordingId recording_id) {
-#ifdef CONFIG_MIC
   return sys_audio_recording_stop(recording_id);
-#else
-  return false;
-#endif
 }
 
 void audio_recording_cancel(AudioRecordingId recording_id) {
-#ifdef CONFIG_MIC
   sys_audio_recording_cancel(recording_id);
-#endif
 }
 
 bool audio_recording_is_active(void) {
-#ifdef CONFIG_MIC
   return sys_audio_recording_is_active();
-#else
-  return false;
-#endif
 }
 
 uint32_t audio_recording_list(AudioRecordingInfo *recordings, uint32_t max_recordings) {
-#ifdef CONFIG_MIC
   return sys_audio_recording_list(recordings, max_recordings);
-#else
-  return 0;
-#endif
 }
 
 bool audio_recording_delete(AudioRecordingId recording_id) {
-#ifdef CONFIG_MIC
   return sys_audio_recording_delete(recording_id);
-#else
-  return false;
-#endif
 }
 
 bool audio_recording_play(AudioRecordingId recording_id) {
-#ifdef CONFIG_MIC
   return sys_audio_recording_play(recording_id);
-#else
-  return false;
-#endif
 }
 
 void audio_recording_stop_playback(void) {
-#ifdef CONFIG_MIC
   sys_audio_recording_stop_playback();
-#endif
 }
 
 bool audio_recording_is_playing(void) {
-#ifdef CONFIG_MIC
   return sys_audio_recording_is_playing();
-#else
-  return false;
-#endif
 }
 
 #ifdef CONFIG_MIC
