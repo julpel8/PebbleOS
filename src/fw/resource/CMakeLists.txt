@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 set(excl)
-if(CONFIG_RECOVERY_FW)
+if(NOT CONFIG_SERVICE_FILESYSTEM)
   list(APPEND excl
     resource_storage_file.c
   )

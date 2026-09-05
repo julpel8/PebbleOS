@@ -1,11 +1,13 @@
 // This order is significant.
 // The first implementation that matches the resource/store query gets it.
 
-#ifndef CONFIG_RECOVERY_FW
+#ifdef CONFIG_SERVICE_FILESYSTEM
   RESOURCE_IMPL(g_app_file_impl)
+#endif
   RESOURCE_IMPL(g_builtin_impl)
+#ifdef CONFIG_SERVICE_FILESYSTEM
   RESOURCE_IMPL(g_file_impl)
+#endif
+#ifndef CONFIG_RECOVERY_FW
   RESOURCE_IMPL(g_system_bank_impl)
-#else
-  RESOURCE_IMPL(g_builtin_impl)
 #endif
