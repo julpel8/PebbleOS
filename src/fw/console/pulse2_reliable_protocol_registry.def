@@ -44,7 +44,9 @@ ON_PACKET(PULSE2_RELIABLE_PROMPT_PROTOCOL, pulse2_prompt_packet_handler)
 ON_PACKET(PULSE2_BULKIO_PROTOCOL, pulse2_bulkio_packet_handler)
 ON_TRANSPORT_STATE_CHANGE(pulse2_bulkio_link_open_handler, pulse2_bulkio_link_closed_handler)
 
+#ifdef CONFIG_SERVICE_COMM_SESSION
 ON_PACKET(PULSE2_PEBBLE_PROTOCOL, pulse_pp_transport_handle_received_data)
 ON_TRANSPORT_STATE_CHANGE(pulse_pp_transport_open_handler, pulse_pp_transport_closed_handler)
+#endif
 
 // vim: filetype=c

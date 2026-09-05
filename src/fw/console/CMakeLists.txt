@@ -2,6 +2,12 @@
 # SPDX-License-Identifier: Apache-2.0
 
 set(excl)
+if(NOT CONFIG_SERVICE_COMM_SESSION)
+  list(APPEND excl pulse_pp.c)
+endif()
+if(NOT CONFIG_SERVICE_FILESYSTEM)
+  list(APPEND excl pulse_bulkio_pfs.c)
+endif()
 if(NOT CONFIG_PROMPT)
   list(APPEND excl
     prompt.c
