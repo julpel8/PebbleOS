@@ -647,7 +647,12 @@ static void prv_select_click(ClickRecognizerRef recognizer, void *context) {
   layer_mark_dirty(&s_data->canvas);
 }
 
+//! The htop shell has nowhere to go back to, and leaving the watchface would
+//! leave the watch with no running app at all.
+static void prv_back_click(ClickRecognizerRef recognizer, void *context) {}
+
 static void prv_click_config_provider(void *context) {
+  window_single_click_subscribe(BUTTON_ID_BACK, prv_back_click);
   window_single_click_subscribe(BUTTON_ID_UP, prv_up_click);
   window_single_click_subscribe(BUTTON_ID_DOWN, prv_down_click);
   window_single_click_subscribe(BUTTON_ID_SELECT, prv_select_click);
