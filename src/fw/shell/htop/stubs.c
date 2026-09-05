@@ -246,12 +246,14 @@ bool touch_navigation_menu_is_enabled(void) {
 void touch_set_navigation_menu_enabled(bool enable) {
 }
 
+#ifndef CONFIG_SERVICE_BLUETOOTH
 bool bt_persistent_storage_get_airplane_mode_enabled(void) {
   return false;
 }
 
 void bt_persistent_storage_set_airplane_mode_enabled(bool *state) {
 }
+#endif
 
 uint32_t backlight_get_timeout_ms(void) {
   return DEFAULT_BACKLIGHT_TIMEOUT_MS;
@@ -288,8 +290,10 @@ void shell_prefs_set_language(ShellLanguage language) {
 
 
 
+#ifndef CONFIG_SERVICE_FILESYSTEM
 void pbl_analytics_external_collect_pfs_stats(void) {
 }
+#endif
 
 void pbl_analytics_external_collect_settings(void) {
 }
@@ -338,6 +342,7 @@ void audio_endpoint_cancel_transfer(AudioEndpointSessionId session_id) {
 // ---------------------------------------------------------------------------
 // Bluetooth and the phone connection.
 
+#ifndef CONFIG_SERVICE_BLUETOOTH
 void bt_lock_init(void) {
 }
 
@@ -355,7 +360,9 @@ void gatt_service_changed_server_handle_fw_update(void) {
 
 void kernel_le_client_handle_event(const PebbleEvent *event) {
 }
+#endif
 
+#ifndef CONFIG_SERVICE_COMM_SESSION
 void comm_session_init(void) {
 }
 
@@ -384,6 +391,7 @@ void comm_session_app_session_capabilities_init(void) {
 
 void comm_session_app_session_capabilities_evict(const Uuid *app_uuid) {
 }
+#endif
 
 void debounced_connection_service_init(void) {
 }
@@ -394,8 +402,10 @@ void debounced_connection_service_handle_event(PebbleCommSessionEvent *e) {
 void poll_remote_init(void) {
 }
 
+#ifndef CONFIG_SERVICE_SHARED_PRF_STORAGE
 void shared_prf_storage_init(void) {
 }
+#endif
 
 void put_bytes_init(void) {
 }
