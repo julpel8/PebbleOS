@@ -28,7 +28,19 @@ static void prv_rc10k_cal_timer_cb(void *data) {
   }
 }
 
+#if !defined(CONFIG_BT_FW_NIMBLE)
+// Calibration runs in the LCPU power domain, so the core must be up. With a
+// Bluetooth stack the transport does this; without one, nobody else will.
+extern void lcpu_custom_nvds_config(void);
+extern uint8_t lcpu_power_on(void);
+#endif
+
 void rc10k_init(void) {
+#if !defined(CONFIG_BT_FW_NIMBLE)
+  lcpu_custom_nvds_config();
+  lcpu_power_on();
+#endif
+
   prv_rc10k_cal_timer_cb(NULL);
 
   s_rc10k_cal_timer = new_timer_create();

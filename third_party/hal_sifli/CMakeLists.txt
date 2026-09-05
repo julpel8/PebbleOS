@@ -233,6 +233,12 @@ if(CONFIG_HAL_SIFLI_SF32LB52)
       SiFli-SDK/drivers/cmsis/sf32lb52x/bt_rf_fulcal.c
       sf32lb52/lcpu_config.c
     )
+    if(NOT CONFIG_BT_FW_NIMBLE)
+      # Normally provided by the nimble transport.
+      list(APPEND micro_sources
+        ../nonfree/pebbleos-nonfree/sf32lb52/lcpu_52x.c
+      )
+    endif()
   endif()
 endif()
 set(micro_includes
