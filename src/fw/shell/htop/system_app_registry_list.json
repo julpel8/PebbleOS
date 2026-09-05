@@ -1,0 +1,24 @@
+{
+  "warning_one": [
+    " 1. DO NOT CHANGE OR REUSE THE ID OF ANY APPLICATION IN THE LIST ",
+    " 2. Read the directions                                          "
+  ],
+  "directions": [
+    " - The System Apps are the applications that are actually coded",
+    "   into the firmware with static PebbleProcessMd's.            ",
+    " - The section 'system_apps' only lists the PebbleProcessMd*   ",
+    "   functions                                                   "
+  ],
+  "warning_two": [
+    " 1. DO NOT CHANGE OR REUSE THE ID OF ANY APPLICATION IN THE LIST ",
+    " 2. Read the directions                                          "
+  ],
+  "system_apps": [
+    {
+      "id": -1,
+      "enum": "HTOP",
+      "md_fn": "htop_app_get_app_info"
+    }
+  ],
+  "resource_apps": []
+}
