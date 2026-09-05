@@ -17,7 +17,7 @@
 #include "system/passert.h"
 #include "util/ratio.h"
 
-#ifndef CONFIG_RECOVERY_FW
+#ifdef CONFIG_SERVICE_FILESYSTEM
 #include "pbl/services/settings/settings_file.h"
 #endif
 
@@ -30,7 +30,7 @@
 
 PBL_LOG_MODULE_DECLARE(service_battery, CONFIG_SERVICE_BATTERY_LOG_LEVEL);
 
-#if !defined(CONFIG_RECOVERY_FW) || defined(CONFIG_MFG)
+#if defined(CONFIG_SERVICE_FILESYSTEM) || defined(CONFIG_MFG)
 #define FUEL_GAUGE_STATEFUL 1
 #else
 #define FUEL_GAUGE_STATEFUL 0
