@@ -6,7 +6,7 @@
 #include "board/board.h"
 #include <pbl/drivers/uart.h>
 
-#if !defined(CONFIG_RELEASE) || defined(CONFIG_MFG)
+#ifdef CONFIG_DBGSERIAL_RX
 
 static DbgSerialCharacterCallback s_character_callback;
 

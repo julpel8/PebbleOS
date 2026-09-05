@@ -66,8 +66,18 @@ config LOG_TASK_PREFIX
       Prefix log messages with the originating task identifier char
       (uppercase when logged from privileged mode).
 
+config DBGSERIAL_RX
+    bool "Debug serial receiver"
+    default y if !RELEASE || MFG
+    help
+      Keep the receiver of the debug UART enabled, for the console and
+      PULSE. On SF32LB52 an enabled receiver holds the SoC out of its
+      deepest low power modes, so a build that only needs the outgoing
+      log stream should turn it off.
+
 config PULSE_EVERYWHERE
     bool "PULSE everywhere"
+    depends on DBGSERIAL_RX
     default y if !RELEASE || MFG
     help
       Use the PULSE protocol for logs and the prompt. Disable to fall

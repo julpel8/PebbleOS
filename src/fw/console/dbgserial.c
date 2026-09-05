@@ -18,7 +18,7 @@
 
 
 void dbgserial_init(void) {
-#if !defined(CONFIG_RELEASE) || defined(CONFIG_MFG)
+#ifdef CONFIG_DBGSERIAL_RX
   uart_init(DBG_UART);
 #else
   uart_init_tx_only(DBG_UART);
