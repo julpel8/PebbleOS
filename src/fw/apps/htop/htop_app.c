@@ -19,9 +19,11 @@
 #include "applib/ui/ui.h"
 #include "kernel/kernel_heap.h"
 #include "kernel/pbl_malloc.h"
+#include "pbl/drivers/battery.h"
 #include "pbl/drivers/rtc.h"
 #include "pbl/util/heap.h"
 #include "pbl/util/math.h"
+#include "pbl/services/clock.h"
 #include "process_state/app_state/app_state.h"
 
 #include "FreeRTOS.h"
@@ -49,11 +51,16 @@ typedef struct {
   AppTimer *timer;
   GFont font;
   GFont font_bold;
+  GFont font_clock;
   TaskStatus_t *status;
 
+  char clock_text[8];
   uint32_t uptime_s;
   uint8_t battery_pct;
   bool charging;
+  bool battery_valid;
+  int32_t battery_mv;
+  int32_t battery_ua;
   unsigned int kernel_used;
   unsigned int kernel_size;
   unsigned int app_used;
@@ -86,6 +93,13 @@ static void prv_format_size(char *buf, size_t buf_size, unsigned int bytes) {
 }
 
 //! Look up what a task had run for at the previous sample.
+//! Battery draw as milliamps with one decimal, e.g. "-12.4mA".
+static void prv_format_current(char *buf, size_t size, int32_t i_ua) {
+  const int32_t tenths = i_ua / 100;
+  snprintf(buf, size, "%s%u.%umA", (tenths < 0) ? "-" : "", (unsigned int)(ABS(tenths) / 10),
+           (unsigned int)(ABS(tenths) % 10));
+}
+
 static uint32_t prv_previous_run_time(UBaseType_t number, bool *found) {
   for (unsigned int i = 0; i < s_data->num_tasks; i++) {
     if (s_data->tasks[i].number == number) {
@@ -133,9 +147,20 @@ static void prv_sample_tasks(void) {
 static void prv_sample(void) {
   s_data->uptime_s = rtc_get_ticks() / RTC_TICKS_HZ;
 
+  struct tm now;
+  clock_get_time_tm(&now);
+  snprintf(s_data->clock_text, sizeof(s_data->clock_text), "%02d:%02d", now.tm_hour, now.tm_min);
+
   const BatteryChargeState charge = battery_state_service_peek();
   s_data->battery_pct = charge.charge_percent;
   s_data->charging = charge.is_charging || charge.is_plugged;
+
+  BatteryConstants constants;
+  s_data->battery_valid = (battery_get_constants(&constants) == 0);
+  if (s_data->battery_valid) {
+    s_data->battery_mv = constants.v_mv;
+    s_data->battery_ua = constants.i_ua;
+  }
 
   unsigned int used, free_bytes, max_free;
   heap_calc_totals(kernel_heap_get(), &used, &free_bytes, &max_free);
@@ -248,8 +273,20 @@ static void prv_update_proc(Layer *layer, GContext *ctx) {
 
   graphics_context_set_text_color(ctx, GColorWhite);
 
-  int16_t y = PBL_IF_ROUND_ELSE(24, 2);
+  const int16_t clock_h = fonts_get_font_height(s_data->font_clock);
+
+  int16_t y = PBL_IF_ROUND_ELSE(20, 2);
   int16_t left, right;
+  prv_row_bounds(layer, y, clock_h, &left, &right);
+
+  prv_draw_text(ctx, s_data->clock_text, s_data->font_clock,
+                GRect(left, y, (right - left) / 2, clock_h), GTextAlignmentLeft);
+
+  snprintf(text, sizeof(text), "%u%%%s", s_data->battery_pct, s_data->charging ? "+" : "");
+  prv_draw_text(ctx, text, s_data->font_clock,
+                GRect((left + right) / 2, y, (right - left) / 2, clock_h), GTextAlignmentRight);
+  y += clock_h;
+
   prv_row_bounds(layer, y, row_h, &left, &right);
 
   const uint32_t uptime = s_data->uptime_s;
@@ -258,9 +295,14 @@ static void prv_update_proc(Layer *layer, GContext *ctx) {
   prv_draw_text(ctx, text, s_data->font_bold, GRect(left, y, (right - left) / 2, row_h),
                 GTextAlignmentLeft);
 
-  snprintf(text, sizeof(text), "bat %u%%%s", s_data->battery_pct, s_data->charging ? "+" : "");
-  prv_draw_text(ctx, text, s_data->font_bold,
-                GRect((left + right) / 2, y, (right - left) / 2, row_h), GTextAlignmentRight);
+  if (s_data->battery_valid) {
+    char current_text[16];
+    prv_format_current(current_text, sizeof(current_text), s_data->battery_ua);
+    snprintf(text, sizeof(text), "%u.%02uV %s", (unsigned int)(s_data->battery_mv / 1000),
+             (unsigned int)((s_data->battery_mv % 1000) / 10), current_text);
+    prv_draw_text(ctx, text, s_data->font_bold,
+                  GRect((left + right) / 2, y, (right - left) / 2, row_h), GTextAlignmentRight);
+  }
   y += row_h;
 
   y = prv_draw_heap(ctx, layer, y, "krn", s_data->kernel_used, s_data->kernel_size);
@@ -293,6 +335,7 @@ static void prv_init(void) {
   s_data->status = app_zalloc_check(HTOP_MAX_TASKS * sizeof(TaskStatus_t));
   s_data->font = fonts_get_system_font(FONT_KEY_GOTHIC_14);
   s_data->font_bold = fonts_get_system_font(FONT_KEY_GOTHIC_14_BOLD);
+  s_data->font_clock = fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD);
 
   window_init(&s_data->window, "Htop");
   window_set_background_color(&s_data->window, GColorBlack);
