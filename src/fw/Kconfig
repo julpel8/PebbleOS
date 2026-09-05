@@ -69,6 +69,12 @@ config SHELL_SDK
     help
       Use the SDK shell instead of the normal shell.
 
+config SHELL_HTOP
+    bool "Htop shell"
+    help
+      Minimal shell that boots straight into the htop watchface. No
+      launcher, no third-party apps, no settings.
+
 endchoice
 
 menu "Debug & instrumentation"

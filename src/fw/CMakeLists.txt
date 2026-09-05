@@ -43,6 +43,8 @@ add_subdirectory(apps/core)
 
 if(CONFIG_RECOVERY_FW)
   add_subdirectory(apps/prf)
+elseif(CONFIG_SHELL_HTOP)
+  add_subdirectory(apps/htop)
 else()
   add_subdirectory(apps)
 endif()
@@ -51,7 +53,7 @@ file(GLOB sources CONFIGURE_DEPENDS *.c)
 pbl_library()
 pbl_library_sources(${sources})
 
-if(NOT CONFIG_RECOVERY_FW)
+if(NOT CONFIG_RECOVERY_FW AND NOT CONFIG_SHELL_HTOP)
   # Translatable strings from the firmware core; apps, services and applib
   # have their own catalogs, merged in here.
   file(GLOB_RECURSE pot_sources CONFIGURE_DEPENDS *.c *.h *.def)

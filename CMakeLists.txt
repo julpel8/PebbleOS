@@ -15,16 +15,17 @@ set(PBL_BASE ${CMAKE_CURRENT_SOURCE_DIR})
 list(APPEND CMAKE_MODULE_PATH ${PBL_BASE}/cmake/modules)
 
 set(BOARD "" CACHE STRING "Board to build for, e.g. asterix or obelix@pvt")
-set(VARIANT "normal" CACHE STRING "Firmware variant: normal or prf")
-set_property(CACHE VARIANT PROPERTY STRINGS normal prf)
+set(VARIANT "normal" CACHE STRING "Firmware variant: normal, prf or htop")
+set_property(CACHE VARIANT PROPERTY STRINGS normal prf htop)
 
 if(NOT BOARD)
   message(FATAL_ERROR
     "No board selected. Configure with -DBOARD=<board>; the available "
     "boards are the directories under boards/.")
 endif()
-if(NOT VARIANT MATCHES "^(normal|prf)$")
-  message(FATAL_ERROR "VARIANT must be 'normal' or 'prf', got '${VARIANT}'")
+if(NOT VARIANT MATCHES "^(normal|prf|htop)$")
+  message(FATAL_ERROR
+    "VARIANT must be 'normal', 'prf' or 'htop', got '${VARIANT}'")
 endif()
 
 # An installed PebbleOS SDK ships the toolchain the firmware is meant to
@@ -94,9 +95,9 @@ add_custom_target(pbl_generated_headers)
 # FIXME: remove include/pbl once all modules use the prefix
 pbl_include_directories(include include/pbl)
 
-# The recovery firmware has no third-party apps, so it needs neither the
-# SDK shims nor the stored apps.
-if(NOT CONFIG_RECOVERY_FW)
+# The recovery and htop firmwares have no third-party apps, so they need
+# neither the SDK shims nor the stored apps.
+if(NOT CONFIG_RECOVERY_FW AND NOT CONFIG_SHELL_HTOP)
   pbl_native_sdk()
   pbl_sdk()
   add_dependencies(pbl_generated_headers pbl_native_sdk)
@@ -108,7 +109,7 @@ add_subdirectory(lib)
 add_subdirectory(soc)
 add_subdirectory(subsys)
 add_subdirectory(src)
-if(NOT CONFIG_RECOVERY_FW)
+if(NOT CONFIG_RECOVERY_FW AND NOT CONFIG_SHELL_HTOP)
   add_subdirectory(apps/stored)
 endif()
 
