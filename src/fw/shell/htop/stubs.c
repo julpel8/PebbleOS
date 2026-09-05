@@ -13,7 +13,9 @@
 #include "kernel/events.h"
 #include "popups/crashed_ui.h"
 #include "popups/notifications/notification_window.h"
+#include "apps/htop/htop_app.h"
 #include "process_management/app_install_manager.h"
+#include "process_management/app_manager.h"
 #include "process_management/pebble_process_md.h"
 #include "resource/resource_ids.auto.h"
 #include "resource/resource_storage_file.h"
@@ -591,6 +593,11 @@ AppInstallId watchface_get_default_install_id(void) {
 }
 
 void watchface_launch_default(const CompositorTransition *animation) {
+  // The htop shell has a single watchface. Bring it back if it ever exits.
+  app_manager_launch_new_app(&(AppLaunchConfig){
+    .md = htop_app_get_app_info(),
+    .restart = true,
+  });
 }
 
 void watchface_reset_click_manager(void) {
