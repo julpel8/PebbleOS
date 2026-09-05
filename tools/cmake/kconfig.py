@@ -143,6 +143,10 @@ def main():
         kconf.load_config(prj_conf, replace=False)
         sources.append(prj_conf)
 
+    # A variant is defined by what it changes from prj.conf, so let it
+    # override; a redundant assignment is still a warning.
+    kconf.warn_assign_override = False
+
     variant_conf = os.path.join(srcdir, "src", "fw", f"prj_{args.variant}.conf")
     if os.path.exists(variant_conf):
         kconf.load_config(variant_conf, replace=False)
