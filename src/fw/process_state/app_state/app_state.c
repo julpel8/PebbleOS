@@ -299,7 +299,9 @@ NOINLINE void app_state_init(void) {
                         &s_app_state_ptr->framebuffer, init_mode);
 
 
+#ifdef CONFIG_SERVICE_BLUETOOTH
   ble_init_app_state();
+#endif
 
   accel_service_state_init(app_state_get_accel_state());
 

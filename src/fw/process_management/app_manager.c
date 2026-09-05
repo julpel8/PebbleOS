@@ -415,9 +415,11 @@ static void prv_app_cleanup(void) {
 #ifndef CONFIG_RECOVERY_FW
   speaker_service_stop_for_task(PebbleTask_App);
 #endif
+#ifdef CONFIG_SERVICE_BLUETOOTH
   ble_app_cleanup();
 
   app_comm_set_sniff_interval(SNIFF_INTERVAL_NORMAL);
+#endif
 
   app_manager_set_minimum_run_level(ProcessAppRunLevelNormal);
   app_install_cleanup_registered_app_callbacks();

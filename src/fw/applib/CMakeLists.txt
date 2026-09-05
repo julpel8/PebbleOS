@@ -27,6 +27,10 @@ if(CONFIG_RECOVERY_FW)
   )
 endif()
 
+if(NOT CONFIG_SERVICE_BLUETOOTH)
+  list(APPEND excl bluetooth)
+endif()
+
 if(NOT CONFIG_BOARD_GETAFIX AND NOT CONFIG_BOARD_QEMU_GABBRO)
   list(APPEND excl ui/window_stack_animation_round*.c)
 endif()
