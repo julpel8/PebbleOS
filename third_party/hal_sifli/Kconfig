@@ -132,11 +132,13 @@ config HAL_SIFLI_LCD
 config HAL_SIFLI_LCPU
     bool "LCPU boot support"
     depends on HAL_SIFLI_SF32LB52
+    default y
     select HAL_SIFLI_LCPU_CONFIG
     select HAL_SIFLI_LCPU_PATCH
     help
       Enable LCPU power-on, patch installation and BT RF
-      calibration support.
+      calibration support. Needed even without Bluetooth: the RC10K
+      calibration registers live in the LCPU power domain.
 
 config HAL_SIFLI_LCPU_CONFIG
     bool "LCPU_CONFIG HAL module"
