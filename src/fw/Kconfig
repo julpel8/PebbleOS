@@ -71,11 +71,19 @@ config SHELL_SDK
 
 config SHELL_HTOP
     bool "Htop shell"
+    select WATCHFACE_BUTTONS
     help
       Minimal shell that boots straight into the htop watchface. No
       launcher, no third-party apps, no settings.
 
 endchoice
+
+config WATCHFACE_BUTTONS
+    bool "Give button events to the running watchface"
+    help
+      The shell normally keeps the buttons for itself while a watchface
+      runs, for the launcher and quick launch. A shell with no UI of its
+      own has nothing to do with them, so hand them to the watchface.
 
 menu "Debug & instrumentation"
 
