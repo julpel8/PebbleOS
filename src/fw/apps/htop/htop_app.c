@@ -45,6 +45,8 @@
 #define HTOP_HISTORY_LEN 96
 //! Smallest full scale of the current graph, in tenths of a milliamp.
 #define HTOP_CURRENT_MIN_SCALE 100
+//! Height of the battery graph strip under the task list, in pixels.
+#define HTOP_TASKS_GRAPH_H 26
 
 typedef enum {
   HtopViewTasks = 0,
@@ -482,8 +484,22 @@ static int16_t prv_draw_header(GContext *ctx, const Layer *layer) {
   return y + 3;
 }
 
+//! The battery draw over the whole history, scaled to its own peak.
+static void prv_draw_current_graph(GContext *ctx, GRect box) {
+  int16_t values[HTOP_HISTORY_LEN];
+  const uint8_t count = prv_history_series(values, 2);
+  int16_t scale = HTOP_CURRENT_MIN_SCALE;
+
+  for (uint8_t i = 0; i < count; i++) {
+    if (ABS(values[i]) > scale) {
+      scale = ABS(values[i]);
+    }
+  }
+  prv_draw_graph(ctx, box, values, count, scale, prv_current_color);
+}
+
 static void prv_draw_tasks_view(GContext *ctx, const Layer *layer, int16_t y) {
-  const int16_t height = layer->bounds.size.h;
+  const int16_t height = layer->bounds.size.h - HTOP_TASKS_GRAPH_H - 4;
   const int16_t row_h = fonts_get_font_height(s_data->font);
   char text[24];
   char cpu_text[8];
@@ -527,6 +543,10 @@ static void prv_draw_tasks_view(GContext *ctx, const Layer *layer, int16_t y) {
 
     y += row_h;
   }
+
+  y = layer->bounds.size.h - HTOP_TASKS_GRAPH_H - 2;
+  prv_row_bounds(layer, y, HTOP_TASKS_GRAPH_H, &left, &right);
+  prv_draw_current_graph(ctx, GRect(left, y, right - left, HTOP_TASKS_GRAPH_H));
 }
 
 //! One graph with its label row above it.
@@ -577,7 +597,6 @@ static void prv_draw_graphs_view(GContext *ctx, const Layer *layer, int16_t y) {
 }
 
 static void prv_draw_clock_view(GContext *ctx, const Layer *layer, int16_t y) {
-  int16_t values[HTOP_HISTORY_LEN];
   char value[24];
   int16_t left, right;
   const int16_t row_h = fonts_get_font_height(s_data->font);
@@ -599,16 +618,8 @@ static void prv_draw_clock_view(GContext *ctx, const Layer *layer, int16_t y) {
     y += row_h;
   }
 
-  const uint8_t count = prv_history_series(values, 2);
-  int16_t scale = HTOP_CURRENT_MIN_SCALE;
-  for (uint8_t i = 0; i < count; i++) {
-    if (ABS(values[i]) > scale) {
-      scale = ABS(values[i]);
-    }
-  }
   prv_row_bounds(layer, y, 1, &left, &right);
-  prv_draw_graph(ctx, GRect(left, y + 4, right - left, layer->bounds.size.h - y - 8), values, count,
-                 scale, prv_current_color);
+  prv_draw_current_graph(ctx, GRect(left, y + 4, right - left, layer->bounds.size.h - y - 8));
 }
 
 static void prv_update_proc(Layer *layer, GContext *ctx) {
