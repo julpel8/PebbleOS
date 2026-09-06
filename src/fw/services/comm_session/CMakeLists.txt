@@ -23,6 +23,9 @@ else()
     # 0x0033, lets the phone drive the low energy link.
     list(APPEND core_only --extra-endpoint 51)
   endif()
+  # 0x0034, which app is running. The phone waits for it before it calls
+  # the connection up, so a firmware without it stays in negotiation.
+  list(APPEND core_only --extra-endpoint 52)
 endif()
 add_custom_command(
   OUTPUT ${endpoints}
