@@ -177,7 +177,12 @@ def cmd_endpoints_table(args):
         definition = json.load(f)
 
     endpoints = list(definition["prf_and_normal_fw"])
-    if not args.core_only:
+    if args.core_only:
+        # A firmware without the normal services can still carry a few of the
+        # other endpoints, whenever its own configuration built the handler.
+        wanted = set(args.extra_endpoint)
+        endpoints.extend(e for e in definition["normal_fw_only"] if e[0] in wanted)
+    else:
         endpoints.extend(definition["normal_fw_only"])
     endpoints.sort()
 
@@ -359,6 +364,7 @@ def main():
     p.add_argument("--input", required=True)
     p.add_argument("--output", required=True)
     p.add_argument("--core-only", action="store_true")
+    p.add_argument("--extra-endpoint", type=int, action="append", default=[])
     p.set_defaults(func=cmd_endpoints_table)
 
     p = sub.add_parser("applib-malloc")

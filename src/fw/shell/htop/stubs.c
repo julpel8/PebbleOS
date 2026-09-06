@@ -281,6 +281,11 @@ bool shell_prefs_get_stationary_enabled(void) {
   return true;
 }
 
+bool shell_prefs_is_time_source_manual(void) {
+  // No settings app here, so the phone always wins.
+  return false;
+}
+
 bool shell_prefs_get_language_english(void) {
   return true;
 }
@@ -483,6 +488,9 @@ void sys_pbl_analytics_set_string(enum pbl_analytics_key key, const char *value)
 }
 
 void sys_pbl_analytics_set_unsigned(enum pbl_analytics_key key, uint32_t unsigned_value) {
+}
+
+void sys_pbl_analytics_set_signed(enum pbl_analytics_key key, int32_t signed_value) {
 }
 
 void sys_pbl_analytics_timer_start(enum pbl_analytics_key key) {

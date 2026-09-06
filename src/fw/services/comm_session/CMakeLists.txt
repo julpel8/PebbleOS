@@ -5,11 +5,24 @@
 # handler, on which task.
 set(endpoints ${CMAKE_CURRENT_BINARY_DIR}/protocol_endpoints_table.auto.h)
 # Without the normal services, only the endpoints every firmware carries
-# can be wired up: the rest have no handler to point at.
+# can be wired up: the rest have no handler to point at. A few of them are
+# built by their own service, so add those back one by one.
 if(CONFIG_SERVICE_SERVICES_NORMAL)
   set(core_only "")
 else()
   set(core_only --core-only)
+  if(CONFIG_SERVICE_CLOCK)
+    # 0x000b, how the phone sets the time.
+    list(APPEND core_only --extra-endpoint 11)
+  endif()
+  if(CONFIG_SERVICE_PING)
+    # 0x07d1, the phone checks the session with it.
+    list(APPEND core_only --extra-endpoint 2001)
+  endif()
+  if(CONFIG_SERVICE_BLUETOOTH)
+    # 0x0033, lets the phone drive the low energy link.
+    list(APPEND core_only --extra-endpoint 51)
+  endif()
 endif()
 add_custom_command(
   OUTPUT ${endpoints}
