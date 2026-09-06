@@ -29,6 +29,8 @@
 #include "comm/bt_conn_mgr.h"
 #include "pbl/services/accel_manager.h"
 #include "pbl/services/activity/activity.h"
+#include "pbl/services/activity/activity_private.h"
+#include "pbl/services/activity/insights_settings.h"
 #include "pbl/services/analytics/analytics.h"
 #include "pbl/services/app_cache.h"
 #include "pbl/services/app_glances/app_glance_service.h"
@@ -36,6 +38,7 @@
 #include "pbl/services/comm_session/session.h"
 #include "pbl/services/compositor/compositor.h"
 #include "pbl/services/data_logging/data_logging_service.h"
+#include "pbl/services/data_logging/dls_private.h"
 #include "pbl/services/notifications/alerts.h"
 #include "pbl/services/notifications/alerts_preferences_private.h"
 #include "pbl/services/runlevel.h"
@@ -319,12 +322,16 @@ void boot_splash_start(void) {
 void boot_splash_stop(void) {
 }
 
+#ifndef CONFIG_SERVICE_PRF_UPDATE
 void check_prf_update(void) {
 }
+#endif
 
+#ifndef CONFIG_SERVICE_GET_BYTES
 bool is_unread_coredump_available(void) {
   return false;
 }
+#endif
 
 void language_ui_display_changed(const char *lang_name) {
 }
@@ -333,6 +340,13 @@ void app_glance_service_init_glance(AppGlance *glance) {
 }
 
 void dls_inactivate_sessions(PebbleTask task) {
+}
+
+void dls_private_handle_disconnect(void *data) {
+}
+
+uint16_t activity_insights_settings_get_version(void) {
+  return 0;
 }
 
 void speaker_service_stop_for_task(PebbleTask task) {
@@ -393,28 +407,38 @@ void comm_session_app_session_capabilities_init(void) {
 
 void comm_session_app_session_capabilities_evict(const Uuid *app_uuid) {
 }
+
+void sys_app_comm_set_responsiveness(SniffInterval interval) {
+}
 #endif
 
+#ifndef CONFIG_SERVICE_DEBOUNCED_CONNECTION_SERVICE
 void debounced_connection_service_init(void) {
 }
 
 void debounced_connection_service_handle_event(PebbleCommSessionEvent *e) {
 }
+#endif
 
+#ifndef CONFIG_SERVICE_POLL_REMOTE
 void poll_remote_init(void) {
 }
+#endif
 
 #ifndef CONFIG_SERVICE_SHARED_PRF_STORAGE
 void shared_prf_storage_init(void) {
 }
 #endif
 
+#ifndef CONFIG_SERVICE_PUT_BYTES
 void put_bytes_init(void) {
 }
 
 void put_bytes_handle_comm_session_event(const PebbleCommSessionEvent *app_event) {
 }
+#endif
 
+#ifndef CONFIG_SERVICE_FIRMWARE_UPDATE
 void firmware_update_init(void) {
 }
 
@@ -427,11 +451,9 @@ void firmware_update_event_handler(PebbleSystemMessageEvent *event) {
 
 void firmware_update_pb_event_handler(PebblePutBytesEvent *event) {
 }
+#endif
 
 void app_fetch_put_bytes_event_handler(PebblePutBytesEvent *pb_event) {
-}
-
-void sys_app_comm_set_responsiveness(SniffInterval interval) {
 }
 
 void app_inbox_service_unregister_all(void) {
@@ -459,6 +481,9 @@ void sys_pbl_analytics_add(enum pbl_analytics_key key, int32_t amount) {
 void sys_pbl_analytics_set_string(enum pbl_analytics_key key, const char *value) {
 }
 
+void sys_pbl_analytics_set_unsigned(enum pbl_analytics_key key, uint32_t unsigned_value) {
+}
+
 void sys_pbl_analytics_timer_start(enum pbl_analytics_key key) {
 }
 
@@ -470,6 +495,9 @@ void sys_pbl_analytics_timer_stop(enum pbl_analytics_key key) {
 
 bool sys_activity_get_metric(ActivityMetric metric, uint32_t history_len, int32_t *history) {
   return false;
+}
+
+void activity_metrics_set_metric_exact(ActivityMetric metric, int32_t value) {
 }
 
 void vibes_init(void) {
@@ -621,6 +649,8 @@ int16_t timeline_peek_get_obstruction_origin_y(void) {
 void timeline_peek_handle_process_start(void) { }
 
 void timeline_peek_handle_process_kill(void) { }
+
+void timeline_peek_set_enabled(bool enabled) { }
 
 #if TIMELINE_PEEK_WATCHFACE_FIT_SUPPORTED
 TimelinePeekUnsupportedFaceMode timeline_peek_prefs_get_unsupported_face_mode(void) {
