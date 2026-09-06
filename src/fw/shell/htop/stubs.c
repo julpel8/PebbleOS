@@ -307,9 +307,6 @@ void pbl_analytics_external_collect_settings(void) {
 // ---------------------------------------------------------------------------
 // Services switched off in this firmware.
 
-void services_normal_early_init(void) {
-}
-
 void services_normal_init(void) {
 }
 

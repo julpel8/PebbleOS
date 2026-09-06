@@ -5,7 +5,6 @@
 
 #include "pbl/services/runlevel.h"
 
-void services_normal_early_init(void);
 
 void services_normal_init(void);
 

@@ -9,6 +9,7 @@
 
 #include "console/prompt.h"
 #include "pbl/services/services_common.h"
+#include "pbl/services/filesystem/pfs.h"
 #include "pbl/services/services_normal.h"
 #include <pbl/logging/logging.h>
 #include "system/passert.h"
@@ -16,8 +17,10 @@
 #include "pbl/util/string.h"
 
 void services_early_init(void) {
-#ifndef CONFIG_RECOVERY_FW
-  services_normal_early_init();
+#ifdef CONFIG_SERVICE_FILESYSTEM
+  // The filesystem is the one service the resource stores need before any
+  // other service, and it comes with the shells that have no normal services.
+  pfs_init(true);
 #endif
 }
 
