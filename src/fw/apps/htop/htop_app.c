@@ -530,10 +530,15 @@ static void prv_draw_tasks_view(GContext *ctx, const Layer *layer, int16_t y) {
                 GTextAlignmentLeft);
 
   if (s_data->battery_valid) {
-    char current_text[16];
-    prv_format_current(current_text, sizeof(current_text), s_data->battery_ua);
+    char right_text[16];
+    if (s_data->battery_tte_s != 0U) {
+      // Worth more than the raw current, whose steps are 0.2 mA wide.
+      prv_format_duration(right_text, sizeof(right_text), s_data->battery_tte_s);
+    } else {
+      prv_format_current(right_text, sizeof(right_text), s_data->battery_ua);
+    }
     snprintf(text, sizeof(text), "%u.%02uV %s", (unsigned int)(s_data->battery_mv / 1000),
-             (unsigned int)((s_data->battery_mv % 1000) / 10), current_text);
+             (unsigned int)((s_data->battery_mv % 1000) / 10), right_text);
     prv_draw_text(ctx, text, s_data->font_bold,
                   GRect((left + right) / 2, y, (right - left) / 2, row_h), GTextAlignmentRight);
   }
