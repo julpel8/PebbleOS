@@ -17,6 +17,7 @@
 #include "kernel/events.h"
 #include "kernel/util/delay.h"
 #include "kernel/util/sleep.h"
+#include "pbl/os/mutex.h"
 #include "pbl/services/system_task.h"
 #include <pbl/logging/logging.h>
 
@@ -27,6 +28,8 @@ PBL_LOG_MODULE_DEFINE(driver_pmic_npm1300, CONFIG_DRIVER_PMIC_LOG_LEVEL);
 #define ADC_POLL_TIMEOUT_MS 100   // Max time to wait for ADC measurement
 static TimerID s_debounce_charger_timer = TIMER_INVALID_ID;
 static uint32_t s_dischg_limit_ma;
+// The ADC measurement sequence is a read-modify-write on shared PMIC state.
+static PebbleMutex *s_adc_lock;
 
 typedef enum {
   PmicRegisters_MAIN_EVENTSADCCLR = 0x0003,
@@ -273,6 +276,7 @@ bool pmic_init(void) {
   uint8_t val;
 
   s_debounce_charger_timer = new_timer_create();
+  s_adc_lock = mutex_create();
 
   // TODO(NPM1300): This needs to be configurable at board level
 #ifdef CONFIG_BOARD_ASTERIX
@@ -445,7 +449,7 @@ bool pmic_full_power_off(void) {
   return pmic_power_off();
 }
 
-uint16_t pmic_get_vsys(void) {
+static uint16_t prv_get_vsys(void) {
   if (!prv_write_register(PmicRegisters_MAIN_EVENTSADCCLR, 0x08 /* EVENTADCVSYSRDY */)) {
     return 0;
   }
@@ -481,7 +485,7 @@ uint16_t pmic_get_vsys(void) {
   return vsys;
 }
 
-int battery_get_millivolts(void) {
+static int prv_get_millivolts(void) {
   if (!prv_write_register(PmicRegisters_MAIN_EVENTSADCCLR, 0x01 /* EVENTADCVBATRDY */)) {
     return 0;
   }
@@ -517,7 +521,7 @@ int battery_get_millivolts(void) {
   return vbat;
 }
 
-int battery_get_constants(BatteryConstants *constants) {
+static int prv_get_constants(BatteryConstants *constants) {
   uint8_t ibat_status;
   int32_t full_scale_ua;
   uint8_t msb;
@@ -710,6 +714,27 @@ void set_4V5_power_state(bool enabled) {
 }
 
 void set_6V6_power_state(bool enabled) {
+}
+
+uint16_t pmic_get_vsys(void) {
+  mutex_lock(s_adc_lock);
+  const uint16_t vsys = prv_get_vsys();
+  mutex_unlock(s_adc_lock);
+  return vsys;
+}
+
+int battery_get_millivolts(void) {
+  mutex_lock(s_adc_lock);
+  const int mv = prv_get_millivolts();
+  mutex_unlock(s_adc_lock);
+  return mv;
+}
+
+int battery_get_constants(BatteryConstants *constants) {
+  mutex_lock(s_adc_lock);
+  const int ret = prv_get_constants(constants);
+  mutex_unlock(s_adc_lock);
+  return ret;
 }
 
 int battery_charge_status_get(BatteryChargeStatus *status) {
