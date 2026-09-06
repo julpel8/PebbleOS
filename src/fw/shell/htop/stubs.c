@@ -277,6 +277,10 @@ void backlight_set_default_color(uint32_t rgb_color) {
 }
 #endif
 
+bool shell_prefs_get_stationary_enabled(void) {
+  return true;
+}
+
 bool shell_prefs_get_language_english(void) {
   return true;
 }
