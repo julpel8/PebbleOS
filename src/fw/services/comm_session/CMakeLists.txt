@@ -4,16 +4,18 @@
 # The Pebble protocol endpoint table: which endpoint id goes to which
 # handler, on which task.
 set(endpoints ${CMAKE_CURRENT_BINARY_DIR}/protocol_endpoints_table.auto.h)
-if(CONFIG_RECOVERY_FW)
-  set(recovery --recovery)
+# Without the normal services, only the endpoints every firmware carries
+# can be wired up: the rest have no handler to point at.
+if(CONFIG_SERVICE_SERVICES_NORMAL)
+  set(core_only "")
 else()
-  set(recovery "")
+  set(core_only --core-only)
 endif()
 add_custom_command(
   OUTPUT ${endpoints}
   COMMAND ${PBL_TOOLCHAIN_ENV} ${PYTHON_EXECUTABLE} ${PBL_BASE}/tools/cmake/generate.py endpoints-table
           --input ${CMAKE_CURRENT_SOURCE_DIR}/protocol_endpoints_table.json
-          --output ${endpoints} ${recovery}
+          --output ${endpoints} ${core_only}
   DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/protocol_endpoints_table.json
   WORKING_DIRECTORY ${PBL_BASE}
   COMMENT "Generating the protocol endpoint table"

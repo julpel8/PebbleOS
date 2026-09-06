@@ -177,7 +177,7 @@ def cmd_endpoints_table(args):
         definition = json.load(f)
 
     endpoints = list(definition["prf_and_normal_fw"])
-    if not args.recovery:
+    if not args.core_only:
         endpoints.extend(definition["normal_fw_only"])
     endpoints.sort()
 
@@ -358,7 +358,7 @@ def main():
     p = sub.add_parser("endpoints-table")
     p.add_argument("--input", required=True)
     p.add_argument("--output", required=True)
-    p.add_argument("--recovery", action="store_true")
+    p.add_argument("--core-only", action="store_true")
     p.set_defaults(func=cmd_endpoints_table)
 
     p = sub.add_parser("applib-malloc")
