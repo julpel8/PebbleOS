@@ -475,10 +475,31 @@ static int16_t prv_draw_header(GContext *ctx, const Layer *layer) {
   prv_draw_text(ctx, s_data->clock_text, s_data->font_clock,
                 GRect(left, y, right - left - battery_w, clock_h), GTextAlignmentLeft);
 
+  const int16_t small_h = fonts_get_font_height(s_data->font);
+  int16_t battery_y = y + 2;
+
   snprintf(text, sizeof(text), "%u%%%s", s_data->battery_pct, s_data->charging ? "+" : "");
-  prv_draw_text(ctx, text, s_data->font_med,
-                GRect(right - battery_w, y + clock_h - date_h - 4, battery_w, date_h),
+  prv_draw_text(ctx, text, s_data->font_med, GRect(right - battery_w, battery_y, battery_w, date_h),
                 GTextAlignmentRight);
+  battery_y += date_h + 1;
+
+  const GRect gauge = GRect(right - battery_w, battery_y, battery_w, 4);
+  graphics_context_set_stroke_color(ctx, GColorLightGray);
+  graphics_draw_rect(ctx, &gauge);
+  GRect gauge_fill = grect_inset(gauge, GEdgeInsets(1));
+  gauge_fill.size.w = (gauge_fill.size.w * s_data->battery_pct) / 100;
+  graphics_context_set_fill_color(ctx, GColorGreen);
+  graphics_fill_rect(ctx, &gauge_fill);
+  battery_y += gauge.size.h;
+
+  if (s_data->battery_tte_s != 0U) {
+    char left_text[16];
+    prv_format_duration(left_text, sizeof(left_text), s_data->battery_tte_s);
+    graphics_context_set_text_color(ctx, GColorLightGray);
+    prv_draw_text(ctx, left_text, s_data->font, GRect(right - battery_w, battery_y, battery_w,
+                                                     small_h),
+                  GTextAlignmentRight);
+  }
   y += clock_h;
 
   prv_row_bounds(layer, y, date_h, &left, &right);
@@ -530,15 +551,10 @@ static void prv_draw_tasks_view(GContext *ctx, const Layer *layer, int16_t y) {
                 GTextAlignmentLeft);
 
   if (s_data->battery_valid) {
-    char right_text[16];
-    if (s_data->battery_tte_s != 0U) {
-      // Worth more than the raw current, whose steps are 0.2 mA wide.
-      prv_format_duration(right_text, sizeof(right_text), s_data->battery_tte_s);
-    } else {
-      prv_format_current(right_text, sizeof(right_text), s_data->battery_ua);
-    }
+    char current_text[16];
+    prv_format_current(current_text, sizeof(current_text), s_data->battery_ua);
     snprintf(text, sizeof(text), "%u.%02uV %s", (unsigned int)(s_data->battery_mv / 1000),
-             (unsigned int)((s_data->battery_mv % 1000) / 10), right_text);
+             (unsigned int)((s_data->battery_mv % 1000) / 10), current_text);
     prv_draw_text(ctx, text, s_data->font_bold,
                   GRect((left + right) / 2, y, (right - left) / 2, row_h), GTextAlignmentRight);
   }
