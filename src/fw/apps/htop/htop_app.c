@@ -49,9 +49,8 @@
 //! Height of the battery graph strip under the task list, in pixels.
 #define HTOP_TASKS_GRAPH_H 26
 
-//! Daytime, local time. Inside the window the watchface is dark on white and
-//! the backlight is white, outside it is light on black and the backlight is
-//! orange. The screen is transflective, so white reads best in daylight.
+//! Daytime, local time. The backlight is white inside that window and orange
+//! outside it. The screen itself stays light on black around the clock.
 #define HTOP_DAY_FIRST_HOUR 8
 #define HTOP_DAY_LAST_HOUR 17
 
@@ -62,38 +61,15 @@ typedef enum {
   HtopViewCount,
 } HtopView;
 
-typedef struct {
-  GColor bg;
-  GColor fg;
-  //! Secondary text and gauge outlines.
-  GColor dim;
-  //! Separators and graph frames.
-  GColor rule;
-  GColor ok;
-  GColor warn;
-  GColor bad;
-} HtopPalette;
-
-static const HtopPalette s_palette_day = {
-  GColorWhite, GColorBlack, GColorDarkGray, GColorLightGray,
-  GColorDarkGreen, GColorChromeYellow, GColorDarkCandyAppleRed,
-};
-
-static const HtopPalette s_palette_night = {
-  GColorBlack, GColorWhite, GColorLightGray, GColorDarkGray,
-  GColorGreen, GColorYellow, GColorRed,
-};
-
-//! Picked at every redraw.
-static const HtopPalette *s_pal = &s_palette_night;
-
-#define HTOP_COLOR_BG (s_pal->bg)
-#define HTOP_COLOR_FG (s_pal->fg)
-#define HTOP_COLOR_DIM (s_pal->dim)
-#define HTOP_COLOR_RULE (s_pal->rule)
-#define HTOP_COLOR_OK (s_pal->ok)
-#define HTOP_COLOR_WARN (s_pal->warn)
-#define HTOP_COLOR_BAD (s_pal->bad)
+#define HTOP_COLOR_BG GColorBlack
+#define HTOP_COLOR_FG GColorWhite
+//! Gauge outlines.
+#define HTOP_COLOR_DIM GColorLightGray
+//! Separators and graph frames.
+#define HTOP_COLOR_RULE GColorDarkGray
+#define HTOP_COLOR_OK GColorGreen
+#define HTOP_COLOR_WARN GColorYellow
+#define HTOP_COLOR_BAD GColorRed
 
 typedef struct {
   char name[12];
@@ -540,7 +516,7 @@ static int16_t prv_draw_header(GContext *ctx, const Layer *layer) {
   if (s_data->battery_tte_s != 0U) {
     char left_text[16];
     prv_format_duration(left_text, sizeof(left_text), s_data->battery_tte_s);
-    graphics_context_set_text_color(ctx, HTOP_COLOR_DIM);
+    graphics_context_set_text_color(ctx, HTOP_COLOR_FG);
     prv_draw_text(ctx, left_text, s_data->font, GRect(right - battery_w, battery_y, battery_w,
                                                      small_h),
                   GTextAlignmentRight);
@@ -548,7 +524,7 @@ static int16_t prv_draw_header(GContext *ctx, const Layer *layer) {
   y += clock_h;
 
   prv_row_bounds(layer, y, date_h, &left, &right);
-  graphics_context_set_text_color(ctx, HTOP_COLOR_DIM);
+  graphics_context_set_text_color(ctx, HTOP_COLOR_FG);
   prv_draw_text(ctx, s_data->date_text, s_data->font_med, GRect(left, y, right - left - 80, date_h),
                 GTextAlignmentLeft);
 
@@ -716,7 +692,6 @@ static void prv_draw_clock_view(GContext *ctx, const Layer *layer, int16_t y) {
 }
 
 static void prv_update_proc(Layer *layer, GContext *ctx) {
-  s_pal = htop_is_daytime() ? &s_palette_day : &s_palette_night;
   graphics_context_set_fill_color(ctx, HTOP_COLOR_BG);
   graphics_fill_rect(ctx, &layer->bounds);
 
