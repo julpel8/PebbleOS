@@ -271,8 +271,10 @@ uint8_t backlight_get_intensity(void) {
 
 #ifdef CONFIG_BACKLIGHT_HAS_COLOR
 uint32_t backlight_get_default_color(void) {
-  // Not the board default: this shell wants an orange lamp.
-  return BACKLIGHT_COLOR_ORANGE;
+  // Not the board default: white during the day, orange the rest of the time.
+  // The light service asks again every time it turns the backlight on, so the
+  // colour follows the screen without anyone watching the clock.
+  return htop_is_daytime() ? BACKLIGHT_COLOR_WHITE : BACKLIGHT_COLOR_ORANGE;
 }
 
 void backlight_set_default_color(uint32_t rgb_color) {

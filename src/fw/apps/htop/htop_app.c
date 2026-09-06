@@ -49,18 +49,11 @@
 //! Height of the battery graph strip under the task list, in pixels.
 #define HTOP_TASKS_GRAPH_H 26
 
-//! Palette. Inverted for now, dark on light: the screen is transflective,
-//! so a white background is the one that reads in daylight without the
-//! backlight. Flip these six lines to go back to light on dark.
-#define HTOP_COLOR_BG GColorWhite
-#define HTOP_COLOR_FG GColorBlack
-//! Secondary text and gauge outlines.
-#define HTOP_COLOR_DIM GColorDarkGray
-//! Separators and graph frames.
-#define HTOP_COLOR_RULE GColorLightGray
-#define HTOP_COLOR_OK GColorDarkGreen
-#define HTOP_COLOR_WARN GColorChromeYellow
-#define HTOP_COLOR_BAD GColorDarkCandyAppleRed
+//! Daytime, local time. Inside the window the watchface is dark on white and
+//! the backlight is white, outside it is light on black and the backlight is
+//! orange. The screen is transflective, so white reads best in daylight.
+#define HTOP_DAY_FIRST_HOUR 8
+#define HTOP_DAY_LAST_HOUR 17
 
 typedef enum {
   HtopViewTasks = 0,
@@ -68,6 +61,39 @@ typedef enum {
   HtopViewClock,
   HtopViewCount,
 } HtopView;
+
+typedef struct {
+  GColor bg;
+  GColor fg;
+  //! Secondary text and gauge outlines.
+  GColor dim;
+  //! Separators and graph frames.
+  GColor rule;
+  GColor ok;
+  GColor warn;
+  GColor bad;
+} HtopPalette;
+
+static const HtopPalette s_palette_day = {
+  GColorWhite, GColorBlack, GColorDarkGray, GColorLightGray,
+  GColorDarkGreen, GColorChromeYellow, GColorDarkCandyAppleRed,
+};
+
+static const HtopPalette s_palette_night = {
+  GColorBlack, GColorWhite, GColorLightGray, GColorDarkGray,
+  GColorGreen, GColorYellow, GColorRed,
+};
+
+//! Picked at every redraw.
+static const HtopPalette *s_pal = &s_palette_night;
+
+#define HTOP_COLOR_BG (s_pal->bg)
+#define HTOP_COLOR_FG (s_pal->fg)
+#define HTOP_COLOR_DIM (s_pal->dim)
+#define HTOP_COLOR_RULE (s_pal->rule)
+#define HTOP_COLOR_OK (s_pal->ok)
+#define HTOP_COLOR_WARN (s_pal->warn)
+#define HTOP_COLOR_BAD (s_pal->bad)
 
 typedef struct {
   char name[12];
@@ -232,6 +258,12 @@ static void prv_sample_tasks(void) {
   prv_sort_tasks(tasks, count);
   memcpy(s_data->tasks, tasks, count * sizeof(HtopTask));
   s_data->num_tasks = count;
+}
+
+bool htop_is_daytime(void) {
+  struct tm now;
+  clock_get_time_tm(&now);
+  return (now.tm_hour >= HTOP_DAY_FIRST_HOUR) && (now.tm_hour < HTOP_DAY_LAST_HOUR);
 }
 
 static void prv_update_clock(void) {
@@ -684,6 +716,10 @@ static void prv_draw_clock_view(GContext *ctx, const Layer *layer, int16_t y) {
 }
 
 static void prv_update_proc(Layer *layer, GContext *ctx) {
+  s_pal = htop_is_daytime() ? &s_palette_day : &s_palette_night;
+  graphics_context_set_fill_color(ctx, HTOP_COLOR_BG);
+  graphics_fill_rect(ctx, &layer->bounds);
+
   const int16_t y = prv_draw_header(ctx, layer);
 
   switch (s_view) {
@@ -739,7 +775,7 @@ static void prv_init(void) {
   s_data->font_clock = fonts_get_system_font(FONT_KEY_LECO_42_NUMBERS);
 
   window_init(&s_data->window, "Htop");
-  window_set_background_color(&s_data->window, HTOP_COLOR_BG);
+  window_set_background_color(&s_data->window, GColorBlack);
   window_set_click_config_provider(&s_data->window, prv_click_config_provider);
 
   layer_init(&s_data->canvas, &s_data->window.layer.bounds);
