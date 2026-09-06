@@ -24,6 +24,7 @@
 #include "kernel/kernel_heap.h"
 #include "kernel/pbl_malloc.h"
 #include "pbl/drivers/battery.h"
+#include "pbl/services/battery/battery_state.h"
 #include "pbl/drivers/rtc.h"
 #include "pbl/util/heap.h"
 #include "pbl/util/math.h"
@@ -91,6 +92,8 @@ typedef struct {
   bool battery_valid;
   int32_t battery_mv;
   int32_t battery_ua;
+  //! Seconds the fuel gauge thinks are left, 0 if it has no estimate.
+  uint32_t battery_tte_s;
   unsigned int kernel_used;
   unsigned int kernel_size;
   unsigned int app_used;
@@ -137,6 +140,16 @@ static void prv_format_size(char *buf, size_t buf_size, unsigned int bytes) {
     snprintf(buf, buf_size, "%u", bytes);
   } else {
     snprintf(buf, buf_size, "%uk", bytes / 1024);
+  }
+}
+
+//! Seconds as "2d 4h" or "3h20".
+static void prv_format_duration(char *buf, size_t size, uint32_t seconds) {
+  const unsigned int hours = seconds / 3600U;
+  if (hours >= 48U) {
+    snprintf(buf, size, "%ud %uh", hours / 24U, hours % 24U);
+  } else {
+    snprintf(buf, size, "%uh%02u", hours, (unsigned int)((seconds / 60U) % 60U));
   }
 }
 
@@ -222,6 +235,7 @@ static void prv_update_clock(void) {
 static void prv_sample_current(void) {
   const BatteryChargeState charge = battery_state_service_peek();
   s_data->battery_pct = charge.charge_percent;
+  s_data->battery_tte_s = battery_state_get_time_to_empty();
   s_data->charging = charge.is_charging || charge.is_plugged;
 
   BatteryConstants constants;
@@ -615,6 +629,19 @@ static void prv_draw_clock_view(GContext *ctx, const Layer *layer, int16_t y) {
     prv_format_current(value, sizeof(value), s_data->battery_ua);
     prv_draw_text(ctx, value, s_data->font_bold,
                   GRect((left + right) / 2, y, (right - left) / 2, row_h), GTextAlignmentRight);
+    y += row_h;
+  }
+
+  if (s_data->battery_tte_s != 0U) {
+    // The gauge reads the current on a 200 mA scale, so its steps are worth
+    // 0.2 mA. This estimate is what the fuel gauge makes of the whole history.
+    char left_text[16];
+    prv_format_duration(left_text, sizeof(left_text), s_data->battery_tte_s);
+    snprintf(value, sizeof(value), "left %s", left_text);
+    prv_row_bounds(layer, y, row_h, &left, &right);
+    graphics_context_set_text_color(ctx, GColorWhite);
+    prv_draw_text(ctx, value, s_data->font_bold, GRect(left, y, right - left, row_h),
+                  GTextAlignmentLeft);
     y += row_h;
   }
 
