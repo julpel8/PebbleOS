@@ -314,6 +314,11 @@ int32_t battery_state_get_temp(void) {
   return 0;
 }
 
+uint32_t battery_state_get_time_to_empty(void) {
+  // No fuel gauge here, so no estimate.
+  return 0;
+}
+
 #include "console/prompt.h"
 void command_print_battery_status(void) {
   char buffer[32];

@@ -65,5 +65,8 @@ uint16_t battery_state_get_voltage(void);
 // Get the last recorded temperature (mC)
 int32_t battery_state_get_temperature(void);
 
+// Seconds left before the battery is empty, 0 if unknown
+uint32_t battery_state_get_time_to_empty(void);
+
 // For unit tests
 TimerID battery_state_get_periodic_timer_id(void);
