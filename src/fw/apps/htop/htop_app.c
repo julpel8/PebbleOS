@@ -49,6 +49,19 @@
 //! Height of the battery graph strip under the task list, in pixels.
 #define HTOP_TASKS_GRAPH_H 26
 
+//! Palette. Inverted for now, dark on light: the screen is transflective,
+//! so a white background is the one that reads in daylight without the
+//! backlight. Flip these six lines to go back to light on dark.
+#define HTOP_COLOR_BG GColorWhite
+#define HTOP_COLOR_FG GColorBlack
+//! Secondary text and gauge outlines.
+#define HTOP_COLOR_DIM GColorDarkGray
+//! Separators and graph frames.
+#define HTOP_COLOR_RULE GColorLightGray
+#define HTOP_COLOR_OK GColorDarkGreen
+#define HTOP_COLOR_WARN GColorChromeYellow
+#define HTOP_COLOR_BAD GColorDarkCandyAppleRed
+
 typedef enum {
   HtopViewTasks = 0,
   HtopViewGraphs,
@@ -338,22 +351,22 @@ static int16_t prv_draw_bar(GContext *ctx, const Layer *layer, int16_t y, const 
   int16_t left, right;
   prv_row_bounds(layer, y, row_h, &left, &right);
 
-  graphics_context_set_text_color(ctx, GColorWhite);
+  graphics_context_set_text_color(ctx, HTOP_COLOR_FG);
   prv_draw_text(ctx, label, s_data->font, GRect(left, y, label_w, row_h), GTextAlignmentLeft);
 
   const GRect bar = GRect(left + label_w, y + 4, right - left - label_w - value_w, row_h - 8);
   if (bar.size.w > 0) {
-    graphics_context_set_stroke_color(ctx, GColorLightGray);
+    graphics_context_set_stroke_color(ctx, HTOP_COLOR_DIM);
     graphics_draw_rect(ctx, &bar);
     if (size > 0) {
       GRect fill = grect_inset(bar, GEdgeInsets(1));
       fill.size.w = (fill.size.w * used) / size;
-      graphics_context_set_fill_color(ctx, GColorGreen);
+      graphics_context_set_fill_color(ctx, HTOP_COLOR_OK);
       graphics_fill_rect(ctx, &fill);
     }
   }
 
-  graphics_context_set_text_color(ctx, GColorWhite);
+  graphics_context_set_text_color(ctx, HTOP_COLOR_FG);
   prv_draw_text(ctx, value, s_data->font, GRect(right - value_w, y, value_w, row_h),
                 GTextAlignmentRight);
 
@@ -403,21 +416,21 @@ typedef GColor (*HtopColorizer)(int16_t value, int16_t scale);
 
 static GColor prv_load_color(int16_t value, int16_t scale) {
   if (value * 2 < scale) {
-    return GColorGreen;
+    return HTOP_COLOR_OK;
   } else if (value * 5 < scale * 4) {
-    return GColorYellow;
+    return HTOP_COLOR_WARN;
   }
-  return GColorRed;
+  return HTOP_COLOR_BAD;
 }
 
 static GColor prv_current_color(int16_t value, int16_t scale) {
-  return (value >= 0) ? GColorGreen : GColorOrange;
+  return (value >= 0) ? HTOP_COLOR_OK : HTOP_COLOR_WARN;
 }
 
 //! History as a filled area chart, oldest on the left.
 static void prv_draw_graph(GContext *ctx, GRect box, const int16_t *values, uint8_t count,
                            int16_t scale, HtopColorizer colorize) {
-  graphics_context_set_stroke_color(ctx, GColorDarkGray);
+  graphics_context_set_stroke_color(ctx, HTOP_COLOR_RULE);
   graphics_draw_rect(ctx, &box);
 
   if (count == 0 || scale <= 0 || box.size.w <= 2 || box.size.h <= 2) {
@@ -471,7 +484,7 @@ static int16_t prv_draw_header(GContext *ctx, const Layer *layer) {
   int16_t y = PBL_IF_ROUND_ELSE(14, 0);
   prv_row_bounds(layer, y, clock_h, &left, &right);
 
-  graphics_context_set_text_color(ctx, GColorWhite);
+  graphics_context_set_text_color(ctx, HTOP_COLOR_FG);
   prv_draw_text(ctx, s_data->clock_text, s_data->font_clock,
                 GRect(left, y, right - left - battery_w, clock_h), GTextAlignmentLeft);
 
@@ -484,18 +497,18 @@ static int16_t prv_draw_header(GContext *ctx, const Layer *layer) {
   battery_y += date_h + 1;
 
   const GRect gauge = GRect(right - battery_w, battery_y, battery_w, 4);
-  graphics_context_set_stroke_color(ctx, GColorLightGray);
+  graphics_context_set_stroke_color(ctx, HTOP_COLOR_DIM);
   graphics_draw_rect(ctx, &gauge);
   GRect gauge_fill = grect_inset(gauge, GEdgeInsets(1));
   gauge_fill.size.w = (gauge_fill.size.w * s_data->battery_pct) / 100;
-  graphics_context_set_fill_color(ctx, GColorGreen);
+  graphics_context_set_fill_color(ctx, HTOP_COLOR_OK);
   graphics_fill_rect(ctx, &gauge_fill);
   battery_y += gauge.size.h;
 
   if (s_data->battery_tte_s != 0U) {
     char left_text[16];
     prv_format_duration(left_text, sizeof(left_text), s_data->battery_tte_s);
-    graphics_context_set_text_color(ctx, GColorLightGray);
+    graphics_context_set_text_color(ctx, HTOP_COLOR_DIM);
     prv_draw_text(ctx, left_text, s_data->font, GRect(right - battery_w, battery_y, battery_w,
                                                      small_h),
                   GTextAlignmentRight);
@@ -503,7 +516,7 @@ static int16_t prv_draw_header(GContext *ctx, const Layer *layer) {
   y += clock_h;
 
   prv_row_bounds(layer, y, date_h, &left, &right);
-  graphics_context_set_text_color(ctx, GColorLightGray);
+  graphics_context_set_text_color(ctx, HTOP_COLOR_DIM);
   prv_draw_text(ctx, s_data->date_text, s_data->font_med, GRect(left, y, right - left - 80, date_h),
                 GTextAlignmentLeft);
 
@@ -513,7 +526,7 @@ static int16_t prv_draw_header(GContext *ctx, const Layer *layer) {
   y += date_h + 2;
 
   prv_row_bounds(layer, y, 1, &left, &right);
-  graphics_context_set_stroke_color(ctx, GColorDarkGray);
+  graphics_context_set_stroke_color(ctx, HTOP_COLOR_RULE);
   graphics_draw_line(ctx, GPoint(left, y), GPoint(right, y));
 
   return y + 3;
@@ -542,7 +555,7 @@ static void prv_draw_tasks_view(GContext *ctx, const Layer *layer, int16_t y) {
   int16_t left, right;
 
   prv_row_bounds(layer, y, row_h, &left, &right);
-  graphics_context_set_text_color(ctx, GColorWhite);
+  graphics_context_set_text_color(ctx, HTOP_COLOR_FG);
 
   const uint32_t uptime = s_data->uptime_s;
   snprintf(text, sizeof(text), "up %u:%02u:%02u", (unsigned int)(uptime / 3600),
@@ -564,7 +577,7 @@ static void prv_draw_tasks_view(GContext *ctx, const Layer *layer, int16_t y) {
   y = prv_draw_heap(ctx, layer, y, "app", s_data->app_used, s_data->app_size);
   y += 2;
 
-  graphics_context_set_text_color(ctx, GColorWhite);
+  graphics_context_set_text_color(ctx, HTOP_COLOR_FG);
   prv_draw_task_row(ctx, layer, y, s_data->font_bold, "task", "s", "cpu", "stk");
   y += row_h;
 
@@ -592,7 +605,7 @@ static int16_t prv_draw_block(GContext *ctx, const Layer *layer, int16_t y, int1
   int16_t left, right;
   prv_row_bounds(layer, y, block_h, &left, &right);
 
-  graphics_context_set_text_color(ctx, GColorWhite);
+  graphics_context_set_text_color(ctx, HTOP_COLOR_FG);
   prv_draw_text(ctx, label, s_data->font_bold, GRect(left, y, 60, row_h), GTextAlignmentLeft);
   prv_draw_text(ctx, value, s_data->font, GRect(right - 100, y, 100, row_h), GTextAlignmentRight);
 
@@ -643,7 +656,7 @@ static void prv_draw_clock_view(GContext *ctx, const Layer *layer, int16_t y) {
     prv_row_bounds(layer, y, row_h, &left, &right);
     snprintf(value, sizeof(value), "%u.%02uV", (unsigned int)(s_data->battery_mv / 1000),
              (unsigned int)((s_data->battery_mv % 1000) / 10));
-    graphics_context_set_text_color(ctx, GColorWhite);
+    graphics_context_set_text_color(ctx, HTOP_COLOR_FG);
     prv_draw_text(ctx, value, s_data->font_bold, GRect(left, y, (right - left) / 2, row_h),
                   GTextAlignmentLeft);
 
@@ -660,7 +673,7 @@ static void prv_draw_clock_view(GContext *ctx, const Layer *layer, int16_t y) {
     prv_format_duration(left_text, sizeof(left_text), s_data->battery_tte_s);
     snprintf(value, sizeof(value), "left %s", left_text);
     prv_row_bounds(layer, y, row_h, &left, &right);
-    graphics_context_set_text_color(ctx, GColorWhite);
+    graphics_context_set_text_color(ctx, HTOP_COLOR_FG);
     prv_draw_text(ctx, value, s_data->font_bold, GRect(left, y, right - left, row_h),
                   GTextAlignmentLeft);
     y += row_h;
@@ -726,7 +739,7 @@ static void prv_init(void) {
   s_data->font_clock = fonts_get_system_font(FONT_KEY_LECO_42_NUMBERS);
 
   window_init(&s_data->window, "Htop");
-  window_set_background_color(&s_data->window, GColorBlack);
+  window_set_background_color(&s_data->window, HTOP_COLOR_BG);
   window_set_click_config_provider(&s_data->window, prv_click_config_provider);
 
   layer_init(&s_data->canvas, &s_data->window.layer.bounds);
