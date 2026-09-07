@@ -10,6 +10,7 @@
 
 #include "pbl/util/uuid.h"
 #include "board/board.h"
+#include <pbl/drivers/backlight.h>
 #include "kernel/events.h"
 #include "popups/crashed_ui.h"
 #include "popups/notifications/notification_window.h"
@@ -270,7 +271,8 @@ uint8_t backlight_get_intensity(void) {
 
 #ifdef CONFIG_BACKLIGHT_HAS_COLOR
 uint32_t backlight_get_default_color(void) {
-  return BOARD_CONFIG.backlight_default_color;
+  // Not the board default: this shell wants an orange lamp.
+  return BACKLIGHT_COLOR_ORANGE;
 }
 
 void backlight_set_default_color(uint32_t rgb_color) {

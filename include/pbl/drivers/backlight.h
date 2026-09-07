@@ -12,6 +12,7 @@
 #define BACKLIGHT_COLOR_BLACK       0x000000
 #define BACKLIGHT_COLOR_WHITE       0xFFFFFF
 #define BACKLIGHT_COLOR_WARM_WHITE  0xFFBFA2
+#define BACKLIGHT_COLOR_ORANGE      0xFF6000
 
 void backlight_init(void);
 
