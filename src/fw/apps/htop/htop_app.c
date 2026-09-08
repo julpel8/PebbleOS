@@ -30,7 +30,6 @@
 #include "pbl/util/math.h"
 #include "pbl/util/size.h"
 #include "pbl/services/clock.h"
-#include "process_state/app_state/app_state.h"
 
 #include "FreeRTOS.h"
 #include "task.h"
@@ -111,8 +110,6 @@ typedef struct {
   uint32_t battery_tte_s;
   unsigned int kernel_used;
   unsigned int kernel_size;
-  unsigned int app_used;
-  unsigned int app_size;
   uint8_t cpu_pct;
 
   //! Battery current accumulated since the last refresh.
@@ -185,6 +182,12 @@ static uint32_t prv_previous_run_time(UBaseType_t number, bool *found) {
   return 0;
 }
 
+//! The idle task still counts towards the CPU share, it is just not worth a
+//! row of its own.
+static bool prv_is_idle(const char *name) {
+  return strncmp(name, "IDLE", 4) == 0;
+}
+
 //! Busiest first, like htop sorted on CPU.
 static void prv_sort_tasks(HtopTask *tasks, uint8_t count) {
   for (uint8_t i = 1; i < count; i++) {
@@ -221,7 +224,7 @@ static void prv_sample_tasks(void) {
     const uint32_t previous = prv_previous_run_time(task->number, &found);
     deltas[i] = found ? (task->run_time - previous) : 0;
     total_delta += deltas[i];
-    if (strncmp(task->name, "IDLE", 4) == 0) {
+    if (prv_is_idle(task->name)) {
       idle_delta += deltas[i];
     }
   }
@@ -296,10 +299,6 @@ static void prv_sample(void) {
   heap_calc_totals(kernel_heap_get(), &used, &free_bytes, &max_free);
   s_data->kernel_used = used;
   s_data->kernel_size = used + free_bytes;
-
-  heap_calc_totals(app_state_get_heap(), &used, &free_bytes, &max_free);
-  s_data->app_used = used;
-  s_data->app_size = used + free_bytes;
 
   prv_sample_tasks();
   prv_history_push();
@@ -582,7 +581,6 @@ static void prv_draw_tasks_view(GContext *ctx, const Layer *layer, int16_t y) {
   y += row_h;
 
   y = prv_draw_heap(ctx, layer, y, "krn", s_data->kernel_used, s_data->kernel_size);
-  y = prv_draw_heap(ctx, layer, y, "app", s_data->app_used, s_data->app_size);
   y += 2;
 
   graphics_context_set_text_color(ctx, HTOP_COLOR_FG);
@@ -591,6 +589,9 @@ static void prv_draw_tasks_view(GContext *ctx, const Layer *layer, int16_t y) {
 
   for (unsigned int i = 0; i < s_data->num_tasks && y + row_h <= height; i++) {
     const HtopTask *task = &s_data->tasks[i];
+    if (prv_is_idle(task->name)) {
+      continue;
+    }
 
     snprintf(text, sizeof(text), "%c", task->state);
     snprintf(cpu_text, sizeof(cpu_text), "%u%%", task->cpu_pct);
