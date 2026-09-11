@@ -1,7 +1,7 @@
 /* SPDX-FileCopyrightText: 2026 Core Devices LLC */
 /* SPDX-License-Identifier: Apache-2.0 */
 
-//! @file htop_app.c
+//! @file ptop_app.c
 //!
 //! A watchface that shows what the system is doing: clock, battery, heap
 //! usage and the FreeRTOS task table, plus btop style history graphs.
@@ -10,7 +10,7 @@
 //! is also the averaging window for the battery draw and the time step of
 //! the graphs.
 
-#include "htop_app.h"
+#include "ptop_app.h"
 
 #include "applib/app.h"
 #include "applib/app_timer.h"
@@ -38,37 +38,37 @@
 #include <string.h>
 
 //! Sampling tick. The refresh period is a whole number of these.
-#define HTOP_TICK_MS 1000
+#define PTOP_TICK_MS 1000
 //! Tasks tracked at once. The system runs about a dozen.
-#define HTOP_MAX_TASKS 20
+#define PTOP_MAX_TASKS 20
 //! History points kept per metric, one per refresh period.
-#define HTOP_HISTORY_LEN 96
+#define PTOP_HISTORY_LEN 96
 //! Smallest full scale of the current graph, in tenths of a milliamp.
-#define HTOP_CURRENT_MIN_SCALE 100
+#define PTOP_CURRENT_MIN_SCALE 100
 //! Height of the battery graph strip under the task list, in pixels.
-#define HTOP_TASKS_GRAPH_H 26
+#define PTOP_TASKS_GRAPH_H 26
 
 //! Daytime, local time. The backlight is white inside that window and orange
 //! outside it. The screen itself stays light on black around the clock.
-#define HTOP_DAY_FIRST_HOUR 8
-#define HTOP_DAY_LAST_HOUR 17
+#define PTOP_DAY_FIRST_HOUR 8
+#define PTOP_DAY_LAST_HOUR 17
 
 typedef enum {
-  HtopViewTasks = 0,
-  HtopViewGraphs,
-  HtopViewClock,
-  HtopViewCount,
-} HtopView;
+  PtopViewTasks = 0,
+  PtopViewGraphs,
+  PtopViewClock,
+  PtopViewCount,
+} PtopView;
 
-#define HTOP_COLOR_BG GColorBlack
-#define HTOP_COLOR_FG GColorWhite
+#define PTOP_COLOR_BG GColorBlack
+#define PTOP_COLOR_FG GColorWhite
 //! Gauge outlines.
-#define HTOP_COLOR_DIM GColorLightGray
+#define PTOP_COLOR_DIM GColorLightGray
 //! Separators and graph frames.
-#define HTOP_COLOR_RULE GColorDarkGray
-#define HTOP_COLOR_OK GColorGreen
-#define HTOP_COLOR_WARN GColorYellow
-#define HTOP_COLOR_BAD GColorRed
+#define PTOP_COLOR_RULE GColorDarkGray
+#define PTOP_COLOR_OK GColorGreen
+#define PTOP_COLOR_WARN GColorYellow
+#define PTOP_COLOR_BAD GColorRed
 
 typedef struct {
   char name[12];
@@ -77,14 +77,14 @@ typedef struct {
   uint16_t stack_free;
   uint32_t run_time;
   UBaseType_t number;
-} HtopTask;
+} PtopTask;
 
 typedef struct {
   uint8_t cpu_pct;
   uint8_t mem_pct;
   //! Battery current in tenths of a milliamp, negative while discharging.
   int16_t current;
-} HtopSample;
+} PtopSample;
 
 typedef struct {
   Window window;
@@ -117,21 +117,21 @@ typedef struct {
   uint16_t current_count;
   uint8_t ticks;
 
-  HtopSample history[HTOP_HISTORY_LEN];
+  PtopSample history[PTOP_HISTORY_LEN];
   uint8_t history_head;
   uint8_t history_count;
 
   uint8_t num_tasks;
-  HtopTask tasks[HTOP_MAX_TASKS];
-} HtopData;
+  PtopTask tasks[PTOP_MAX_TASKS];
+} PtopData;
 
 static const uint8_t s_refresh_periods_s[] = {1, 2, 5, 10, 30, 60};
 
-//! Kept out of HtopData so the settings survive an app restart.
-static uint8_t s_view = HtopViewTasks;
+//! Kept out of PtopData so the settings survive an app restart.
+static uint8_t s_view = PtopViewTasks;
 static uint8_t s_period_index;
 
-static HtopData *s_data;
+static PtopData *s_data;
 
 static uint8_t prv_period_s(void) { return s_refresh_periods_s[s_period_index]; }
 
@@ -189,9 +189,9 @@ static bool prv_is_idle(const char *name) {
 }
 
 //! Busiest first, like htop sorted on CPU.
-static void prv_sort_tasks(HtopTask *tasks, uint8_t count) {
+static void prv_sort_tasks(PtopTask *tasks, uint8_t count) {
   for (uint8_t i = 1; i < count; i++) {
-    const HtopTask task = tasks[i];
+    const PtopTask task = tasks[i];
     int8_t j = i - 1;
     while (j >= 0 && tasks[j].cpu_pct < task.cpu_pct) {
       tasks[j + 1] = tasks[j];
@@ -202,16 +202,16 @@ static void prv_sort_tasks(HtopTask *tasks, uint8_t count) {
 }
 
 static void prv_sample_tasks(void) {
-  const UBaseType_t count = uxTaskGetSystemState(s_data->status, HTOP_MAX_TASKS, NULL);
+  const UBaseType_t count = uxTaskGetSystemState(s_data->status, PTOP_MAX_TASKS, NULL);
 
-  HtopTask tasks[HTOP_MAX_TASKS];
+  PtopTask tasks[PTOP_MAX_TASKS];
   uint32_t total_delta = 0;
   uint32_t idle_delta = 0;
-  uint32_t deltas[HTOP_MAX_TASKS];
+  uint32_t deltas[PTOP_MAX_TASKS];
 
   for (UBaseType_t i = 0; i < count; i++) {
     const TaskStatus_t *status = &s_data->status[i];
-    HtopTask *task = &tasks[i];
+    PtopTask *task = &tasks[i];
 
     strncpy(task->name, status->pcTaskName, sizeof(task->name) - 1);
     task->name[sizeof(task->name) - 1] = '\0';
@@ -235,14 +235,14 @@ static void prv_sample_tasks(void) {
   s_data->cpu_pct = total_delta ? (((total_delta - idle_delta) * 100) / total_delta) : 0;
 
   prv_sort_tasks(tasks, count);
-  memcpy(s_data->tasks, tasks, count * sizeof(HtopTask));
+  memcpy(s_data->tasks, tasks, count * sizeof(PtopTask));
   s_data->num_tasks = count;
 }
 
-bool htop_is_daytime(void) {
+bool ptop_is_daytime(void) {
   struct tm now;
   clock_get_time_tm(&now);
-  return (now.tm_hour >= HTOP_DAY_FIRST_HOUR) && (now.tm_hour < HTOP_DAY_LAST_HOUR);
+  return (now.tm_hour >= PTOP_DAY_FIRST_HOUR) && (now.tm_hour < PTOP_DAY_LAST_HOUR);
 }
 
 static void prv_update_clock(void) {
@@ -272,15 +272,15 @@ static void prv_sample_current(void) {
 }
 
 static void prv_history_push(void) {
-  HtopSample *sample = &s_data->history[s_data->history_head];
+  PtopSample *sample = &s_data->history[s_data->history_head];
 
   sample->cpu_pct = s_data->cpu_pct;
   sample->mem_pct =
       s_data->kernel_size ? ((s_data->kernel_used * 100) / s_data->kernel_size) : 0;
   sample->current = s_data->battery_ua;
 
-  s_data->history_head = (s_data->history_head + 1) % HTOP_HISTORY_LEN;
-  if (s_data->history_count < HTOP_HISTORY_LEN) {
+  s_data->history_head = (s_data->history_head + 1) % PTOP_HISTORY_LEN;
+  if (s_data->history_count < PTOP_HISTORY_LEN) {
     s_data->history_count++;
   }
 }
@@ -324,7 +324,7 @@ static void prv_timer_callback(void *unused) {
   if (redraw) {
     layer_mark_dirty(&s_data->canvas);
   }
-  s_data->timer = app_timer_register(HTOP_TICK_MS, prv_timer_callback, NULL);
+  s_data->timer = app_timer_register(PTOP_TICK_MS, prv_timer_callback, NULL);
 }
 
 static void prv_draw_text(GContext *ctx, const char *text, GFont font, GRect box,
@@ -358,22 +358,22 @@ static int16_t prv_draw_bar(GContext *ctx, const Layer *layer, int16_t y, const 
   int16_t left, right;
   prv_row_bounds(layer, y, row_h, &left, &right);
 
-  graphics_context_set_text_color(ctx, HTOP_COLOR_FG);
+  graphics_context_set_text_color(ctx, PTOP_COLOR_FG);
   prv_draw_text(ctx, label, s_data->font, GRect(left, y, label_w, row_h), GTextAlignmentLeft);
 
   const GRect bar = GRect(left + label_w, y + 4, right - left - label_w - value_w, row_h - 8);
   if (bar.size.w > 0) {
-    graphics_context_set_stroke_color(ctx, HTOP_COLOR_DIM);
+    graphics_context_set_stroke_color(ctx, PTOP_COLOR_DIM);
     graphics_draw_rect(ctx, &bar);
     if (size > 0) {
       GRect fill = grect_inset(bar, GEdgeInsets(1));
       fill.size.w = (fill.size.w * used) / size;
-      graphics_context_set_fill_color(ctx, HTOP_COLOR_OK);
+      graphics_context_set_fill_color(ctx, PTOP_COLOR_OK);
       graphics_fill_rect(ctx, &fill);
     }
   }
 
-  graphics_context_set_text_color(ctx, HTOP_COLOR_FG);
+  graphics_context_set_text_color(ctx, PTOP_COLOR_FG);
   prv_draw_text(ctx, value, s_data->font, GRect(right - value_w, y, value_w, row_h),
                 GTextAlignmentRight);
 
@@ -419,25 +419,25 @@ static void prv_draw_task_row(GContext *ctx, const Layer *layer, int16_t y, GFon
   prv_draw_text(ctx, stack, font, GRect(stack_x, y, stack_w, row_h), GTextAlignmentRight);
 }
 
-typedef GColor (*HtopColorizer)(int16_t value, int16_t scale);
+typedef GColor (*PtopColorizer)(int16_t value, int16_t scale);
 
 static GColor prv_load_color(int16_t value, int16_t scale) {
   if (value * 2 < scale) {
-    return HTOP_COLOR_OK;
+    return PTOP_COLOR_OK;
   } else if (value * 5 < scale * 4) {
-    return HTOP_COLOR_WARN;
+    return PTOP_COLOR_WARN;
   }
-  return HTOP_COLOR_BAD;
+  return PTOP_COLOR_BAD;
 }
 
 static GColor prv_current_color(int16_t value, int16_t scale) {
-  return (value >= 0) ? HTOP_COLOR_OK : HTOP_COLOR_WARN;
+  return (value >= 0) ? PTOP_COLOR_OK : PTOP_COLOR_WARN;
 }
 
 //! History as a filled area chart, oldest on the left.
 static void prv_draw_graph(GContext *ctx, GRect box, const int16_t *values, uint8_t count,
-                           int16_t scale, HtopColorizer colorize) {
-  graphics_context_set_stroke_color(ctx, HTOP_COLOR_RULE);
+                           int16_t scale, PtopColorizer colorize) {
+  graphics_context_set_stroke_color(ctx, PTOP_COLOR_RULE);
   graphics_draw_rect(ctx, &box);
 
   if (count == 0 || scale <= 0 || box.size.w <= 2 || box.size.h <= 2) {
@@ -466,10 +466,10 @@ static void prv_draw_graph(GContext *ctx, GRect box, const int16_t *values, uint
 //! Copy the history of one metric into values[], oldest first.
 static uint8_t prv_history_series(int16_t *values, uint8_t metric) {
   const uint8_t count = s_data->history_count;
-  const uint8_t start = (s_data->history_head + HTOP_HISTORY_LEN - count) % HTOP_HISTORY_LEN;
+  const uint8_t start = (s_data->history_head + PTOP_HISTORY_LEN - count) % PTOP_HISTORY_LEN;
 
   for (uint8_t i = 0; i < count; i++) {
-    const HtopSample *sample = &s_data->history[(start + i) % HTOP_HISTORY_LEN];
+    const PtopSample *sample = &s_data->history[(start + i) % PTOP_HISTORY_LEN];
     switch (metric) {
       case 0: values[i] = sample->cpu_pct; break;
       case 1: values[i] = sample->mem_pct; break;
@@ -481,7 +481,7 @@ static uint8_t prv_history_series(int16_t *values, uint8_t metric) {
 
 //! Clock, date, battery and the current settings. Shared by every view.
 static int16_t prv_draw_header(GContext *ctx, const Layer *layer) {
-  static const char *const s_view_names[HtopViewCount] = {"tasks", "graphs", "clock"};
+  static const char *const s_view_names[PtopViewCount] = {"tasks", "graphs", "clock"};
   const int16_t clock_h = fonts_get_font_height(s_data->font_clock);
   const int16_t date_h = fonts_get_font_height(s_data->font_med);
   const int16_t battery_w = 76;
@@ -491,7 +491,7 @@ static int16_t prv_draw_header(GContext *ctx, const Layer *layer) {
   int16_t y = PBL_IF_ROUND_ELSE(14, 0);
   prv_row_bounds(layer, y, clock_h, &left, &right);
 
-  graphics_context_set_text_color(ctx, HTOP_COLOR_FG);
+  graphics_context_set_text_color(ctx, PTOP_COLOR_FG);
   prv_draw_text(ctx, s_data->clock_text, s_data->font_clock,
                 GRect(left, y, right - left - battery_w, clock_h), GTextAlignmentLeft);
 
@@ -504,18 +504,18 @@ static int16_t prv_draw_header(GContext *ctx, const Layer *layer) {
   battery_y += date_h + 1;
 
   const GRect gauge = GRect(right - battery_w, battery_y, battery_w, 4);
-  graphics_context_set_stroke_color(ctx, HTOP_COLOR_DIM);
+  graphics_context_set_stroke_color(ctx, PTOP_COLOR_DIM);
   graphics_draw_rect(ctx, &gauge);
   GRect gauge_fill = grect_inset(gauge, GEdgeInsets(1));
   gauge_fill.size.w = (gauge_fill.size.w * s_data->battery_pct) / 100;
-  graphics_context_set_fill_color(ctx, HTOP_COLOR_OK);
+  graphics_context_set_fill_color(ctx, PTOP_COLOR_OK);
   graphics_fill_rect(ctx, &gauge_fill);
   battery_y += gauge.size.h;
 
   if (s_data->battery_tte_s != 0U) {
     char left_text[16];
     prv_format_duration(left_text, sizeof(left_text), s_data->battery_tte_s);
-    graphics_context_set_text_color(ctx, HTOP_COLOR_FG);
+    graphics_context_set_text_color(ctx, PTOP_COLOR_FG);
     prv_draw_text(ctx, left_text, s_data->font, GRect(right - battery_w, battery_y, battery_w,
                                                      small_h),
                   GTextAlignmentRight);
@@ -523,7 +523,7 @@ static int16_t prv_draw_header(GContext *ctx, const Layer *layer) {
   y += clock_h;
 
   prv_row_bounds(layer, y, date_h, &left, &right);
-  graphics_context_set_text_color(ctx, HTOP_COLOR_FG);
+  graphics_context_set_text_color(ctx, PTOP_COLOR_FG);
   prv_draw_text(ctx, s_data->date_text, s_data->font_med, GRect(left, y, right - left - 80, date_h),
                 GTextAlignmentLeft);
 
@@ -533,7 +533,7 @@ static int16_t prv_draw_header(GContext *ctx, const Layer *layer) {
   y += date_h + 2;
 
   prv_row_bounds(layer, y, 1, &left, &right);
-  graphics_context_set_stroke_color(ctx, HTOP_COLOR_RULE);
+  graphics_context_set_stroke_color(ctx, PTOP_COLOR_RULE);
   graphics_draw_line(ctx, GPoint(left, y), GPoint(right, y));
 
   return y + 3;
@@ -541,9 +541,9 @@ static int16_t prv_draw_header(GContext *ctx, const Layer *layer) {
 
 //! The battery draw over the whole history, scaled to its own peak.
 static void prv_draw_current_graph(GContext *ctx, GRect box) {
-  int16_t values[HTOP_HISTORY_LEN];
+  int16_t values[PTOP_HISTORY_LEN];
   const uint8_t count = prv_history_series(values, 2);
-  int16_t scale = HTOP_CURRENT_MIN_SCALE;
+  int16_t scale = PTOP_CURRENT_MIN_SCALE;
 
   for (uint8_t i = 0; i < count; i++) {
     if (ABS(values[i]) > scale) {
@@ -554,7 +554,7 @@ static void prv_draw_current_graph(GContext *ctx, GRect box) {
 }
 
 static void prv_draw_tasks_view(GContext *ctx, const Layer *layer, int16_t y) {
-  const int16_t height = layer->bounds.size.h - HTOP_TASKS_GRAPH_H - 4;
+  const int16_t height = layer->bounds.size.h - PTOP_TASKS_GRAPH_H - 4;
   const int16_t row_h = fonts_get_font_height(s_data->font);
   char text[24];
   char cpu_text[8];
@@ -562,7 +562,7 @@ static void prv_draw_tasks_view(GContext *ctx, const Layer *layer, int16_t y) {
   int16_t left, right;
 
   prv_row_bounds(layer, y, row_h, &left, &right);
-  graphics_context_set_text_color(ctx, HTOP_COLOR_FG);
+  graphics_context_set_text_color(ctx, PTOP_COLOR_FG);
 
   const uint32_t uptime = s_data->uptime_s;
   snprintf(text, sizeof(text), "up %u:%02u:%02u", (unsigned int)(uptime / 3600),
@@ -583,12 +583,12 @@ static void prv_draw_tasks_view(GContext *ctx, const Layer *layer, int16_t y) {
   y = prv_draw_heap(ctx, layer, y, "krn", s_data->kernel_used, s_data->kernel_size);
   y += 2;
 
-  graphics_context_set_text_color(ctx, HTOP_COLOR_FG);
+  graphics_context_set_text_color(ctx, PTOP_COLOR_FG);
   prv_draw_task_row(ctx, layer, y, s_data->font_bold, "task", "s", "cpu", "stk");
   y += row_h;
 
   for (unsigned int i = 0; i < s_data->num_tasks && y + row_h <= height; i++) {
-    const HtopTask *task = &s_data->tasks[i];
+    const PtopTask *task = &s_data->tasks[i];
     if (prv_is_idle(task->name)) {
       continue;
     }
@@ -601,20 +601,20 @@ static void prv_draw_tasks_view(GContext *ctx, const Layer *layer, int16_t y) {
     y += row_h;
   }
 
-  y = layer->bounds.size.h - HTOP_TASKS_GRAPH_H - 2;
-  prv_row_bounds(layer, y, HTOP_TASKS_GRAPH_H, &left, &right);
-  prv_draw_current_graph(ctx, GRect(left, y, right - left, HTOP_TASKS_GRAPH_H));
+  y = layer->bounds.size.h - PTOP_TASKS_GRAPH_H - 2;
+  prv_row_bounds(layer, y, PTOP_TASKS_GRAPH_H, &left, &right);
+  prv_draw_current_graph(ctx, GRect(left, y, right - left, PTOP_TASKS_GRAPH_H));
 }
 
 //! One graph with its label row above it.
 static int16_t prv_draw_block(GContext *ctx, const Layer *layer, int16_t y, int16_t block_h,
                               const char *label, const char *value, const int16_t *values,
-                              uint8_t count, int16_t scale, HtopColorizer colorize) {
+                              uint8_t count, int16_t scale, PtopColorizer colorize) {
   const int16_t row_h = fonts_get_font_height(s_data->font);
   int16_t left, right;
   prv_row_bounds(layer, y, block_h, &left, &right);
 
-  graphics_context_set_text_color(ctx, HTOP_COLOR_FG);
+  graphics_context_set_text_color(ctx, PTOP_COLOR_FG);
   prv_draw_text(ctx, label, s_data->font_bold, GRect(left, y, 60, row_h), GTextAlignmentLeft);
   prv_draw_text(ctx, value, s_data->font, GRect(right - 100, y, 100, row_h), GTextAlignmentRight);
 
@@ -627,7 +627,7 @@ static int16_t prv_draw_block(GContext *ctx, const Layer *layer, int16_t y, int1
 }
 
 static void prv_draw_graphs_view(GContext *ctx, const Layer *layer, int16_t y) {
-  int16_t values[HTOP_HISTORY_LEN];
+  int16_t values[PTOP_HISTORY_LEN];
   char value[24];
   uint8_t count;
 
@@ -643,7 +643,7 @@ static void prv_draw_graphs_view(GContext *ctx, const Layer *layer, int16_t y) {
   y = prv_draw_block(ctx, layer, y, block_h, "krn", value, values, count, 100, prv_load_color);
 
   count = prv_history_series(values, 2);
-  int16_t scale = HTOP_CURRENT_MIN_SCALE;
+  int16_t scale = PTOP_CURRENT_MIN_SCALE;
   for (uint8_t i = 0; i < count; i++) {
     if (ABS(values[i]) > scale) {
       scale = ABS(values[i]);
@@ -665,7 +665,7 @@ static void prv_draw_clock_view(GContext *ctx, const Layer *layer, int16_t y) {
     prv_row_bounds(layer, y, row_h, &left, &right);
     snprintf(value, sizeof(value), "%u.%02uV", (unsigned int)(s_data->battery_mv / 1000),
              (unsigned int)((s_data->battery_mv % 1000) / 10));
-    graphics_context_set_text_color(ctx, HTOP_COLOR_FG);
+    graphics_context_set_text_color(ctx, PTOP_COLOR_FG);
     prv_draw_text(ctx, value, s_data->font_bold, GRect(left, y, (right - left) / 2, row_h),
                   GTextAlignmentLeft);
 
@@ -682,7 +682,7 @@ static void prv_draw_clock_view(GContext *ctx, const Layer *layer, int16_t y) {
     prv_format_duration(left_text, sizeof(left_text), s_data->battery_tte_s);
     snprintf(value, sizeof(value), "left %s", left_text);
     prv_row_bounds(layer, y, row_h, &left, &right);
-    graphics_context_set_text_color(ctx, HTOP_COLOR_FG);
+    graphics_context_set_text_color(ctx, PTOP_COLOR_FG);
     prv_draw_text(ctx, value, s_data->font_bold, GRect(left, y, right - left, row_h),
                   GTextAlignmentLeft);
     y += row_h;
@@ -693,16 +693,16 @@ static void prv_draw_clock_view(GContext *ctx, const Layer *layer, int16_t y) {
 }
 
 static void prv_update_proc(Layer *layer, GContext *ctx) {
-  graphics_context_set_fill_color(ctx, HTOP_COLOR_BG);
+  graphics_context_set_fill_color(ctx, PTOP_COLOR_BG);
   graphics_fill_rect(ctx, &layer->bounds);
 
   const int16_t y = prv_draw_header(ctx, layer);
 
   switch (s_view) {
-    case HtopViewGraphs:
+    case PtopViewGraphs:
       prv_draw_graphs_view(ctx, layer, y);
       break;
-    case HtopViewClock:
+    case PtopViewClock:
       prv_draw_clock_view(ctx, layer, y);
       break;
     default:
@@ -712,12 +712,12 @@ static void prv_update_proc(Layer *layer, GContext *ctx) {
 }
 
 static void prv_up_click(ClickRecognizerRef recognizer, void *context) {
-  s_view = (s_view + HtopViewCount - 1) % HtopViewCount;
+  s_view = (s_view + PtopViewCount - 1) % PtopViewCount;
   layer_mark_dirty(&s_data->canvas);
 }
 
 static void prv_down_click(ClickRecognizerRef recognizer, void *context) {
-  s_view = (s_view + 1) % HtopViewCount;
+  s_view = (s_view + 1) % PtopViewCount;
   layer_mark_dirty(&s_data->canvas);
 }
 
@@ -731,7 +731,7 @@ static void prv_select_click(ClickRecognizerRef recognizer, void *context) {
   layer_mark_dirty(&s_data->canvas);
 }
 
-//! The htop shell has nowhere to go back to, and leaving the watchface would
+//! The ptop shell has nowhere to go back to, and leaving the watchface would
 //! leave the watch with no running app at all.
 static void prv_back_click(ClickRecognizerRef recognizer, void *context) {}
 
@@ -744,13 +744,13 @@ static void prv_click_config_provider(void *context) {
 
 static void prv_init(void) {
   s_data = app_zalloc_check(sizeof(*s_data));
-  s_data->status = app_zalloc_check(HTOP_MAX_TASKS * sizeof(TaskStatus_t));
+  s_data->status = app_zalloc_check(PTOP_MAX_TASKS * sizeof(TaskStatus_t));
   s_data->font = fonts_get_system_font(FONT_KEY_GOTHIC_14);
   s_data->font_bold = fonts_get_system_font(FONT_KEY_GOTHIC_14_BOLD);
   s_data->font_med = fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD);
   s_data->font_clock = fonts_get_system_font(FONT_KEY_LECO_42_NUMBERS);
 
-  window_init(&s_data->window, "Htop");
+  window_init(&s_data->window, "Ptop");
   window_set_background_color(&s_data->window, GColorBlack);
   window_set_click_config_provider(&s_data->window, prv_click_config_provider);
 
@@ -763,7 +763,7 @@ static void prv_init(void) {
   prv_update_clock();
   prv_sample_current();
   prv_sample();
-  s_data->timer = app_timer_register(HTOP_TICK_MS, prv_timer_callback, NULL);
+  s_data->timer = app_timer_register(PTOP_TICK_MS, prv_timer_callback, NULL);
 }
 
 static void prv_deinit(void) {
@@ -780,7 +780,7 @@ static void prv_main(void) {
   prv_deinit();
 }
 
-const PebbleProcessMd *htop_app_get_app_info(void) {
+const PebbleProcessMd *ptop_app_get_app_info(void) {
   static const PebbleProcessMdSystem s_app_md = {
     .common = {
       // UUID: 2b5f0dc3-fd9a-4a2f-96f7-1a7c1b4f7bd0
@@ -789,7 +789,7 @@ const PebbleProcessMd *htop_app_get_app_info(void) {
       .main_func = prv_main,
       .process_type = ProcessTypeWatchface,
     },
-    .name = "Htop",
+    .name = "Ptop",
   };
   return (const PebbleProcessMd *)&s_app_md;
 }

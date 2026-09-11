@@ -6,7 +6,7 @@
 #include "git_version.auto.h"
 #include "pbl/drivers/rtc.h"
 
-// The htop shell has no UI of its own: the watchface is the whole shell.
+// The ptop shell has no UI of its own: the watchface is the whole shell.
 
 void shell_event_loop_init(void) {
   // Nothing sets the clock here: no radio, and no settings app. Start from

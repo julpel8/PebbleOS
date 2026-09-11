@@ -4,7 +4,7 @@
 
 //! @file stubs.c
 //!
-//! The htop firmware runs a single watchface and nothing else: no radio, no
+//! The ptop firmware runs a single watchface and nothing else: no radio, no
 //! filesystem, no app installs. This file fills in what the kernel and the
 //! common services still reference from the subsystems that are switched off.
 
@@ -14,7 +14,7 @@
 #include "kernel/events.h"
 #include "popups/crashed_ui.h"
 #include "popups/notifications/notification_window.h"
-#include "apps/htop/htop_app.h"
+#include "apps/ptop/ptop_app.h"
 #include "process_management/app_install_manager.h"
 #include "process_management/app_manager.h"
 #include "process_management/pebble_process_md.h"
@@ -274,7 +274,7 @@ uint32_t backlight_get_default_color(void) {
   // Not the board default: white during the day, orange the rest of the time.
   // The light service asks again every time it turns the backlight on, so the
   // colour follows the screen without anyone watching the clock.
-  return htop_is_daytime() ? BACKLIGHT_COLOR_WHITE : BACKLIGHT_COLOR_ORANGE;
+  return ptop_is_daytime() ? BACKLIGHT_COLOR_WHITE : BACKLIGHT_COLOR_ORANGE;
 }
 
 void backlight_set_default_color(uint32_t rgb_color) {
@@ -634,9 +634,9 @@ AppInstallId watchface_get_default_install_id(void) {
 }
 
 void watchface_launch_default(const CompositorTransition *animation) {
-  // The htop shell has a single watchface. Bring it back if it ever exits.
+  // The ptop shell has a single watchface. Bring it back if it ever exits.
   app_manager_launch_new_app(&(AppLaunchConfig){
-    .md = htop_app_get_app_info(),
+    .md = ptop_app_get_app_info(),
     .restart = true,
   });
 }

@@ -25,8 +25,8 @@
   "system_apps": [
     {
       "id": -1,
-      "enum": "HTOP",
-      "md_fn": "htop_app_get_app_info"
+      "enum": "PTOP",
+      "md_fn": "ptop_app_get_app_info"
     },
     {
       "id": -69,

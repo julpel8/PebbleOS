@@ -43,7 +43,7 @@ class Configure(PblCommand):
         parser.add_argument(
             "--variant",
             default="normal",
-            choices=["normal", "prf", "htop"],
+            choices=["normal", "prf", "ptop"],
             help="Firmware variant (default: normal)",
         )
         parser.add_argument(

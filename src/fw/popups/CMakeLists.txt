@@ -9,8 +9,8 @@ else()
   else()
     set(excl ble_hrm/**)
   endif()
-  if(CONFIG_SHELL_HTOP)
-    # The htop firmware has no timeline.
+  if(CONFIG_SHELL_PTOP)
+    # The ptop firmware has no timeline.
     list(APPEND excl timeline/**)
   endif()
   file(GLOB_RECURSE source CONFIGURE_DEPENDS *.c)
