@@ -3474,7 +3474,20 @@ msgstr "削岩機"
 msgid "Gentle"
 msgstr "おだやか"
 
-#~ msgid "High performance"
+#: ../src/fw/apps/system/settings/recordings.c:24
+#, c-format
+msgid "Used %u KB"
+msgstr ""
+
+#: ../src/fw/apps/system/settings/recordings.c:26
+#, c-format
+msgid "Free %u KB"
+msgstr ""
+
+#: ../src/fw/apps/system/settings/recordings.c:33
+#: ../src/fw/apps/system/settings/recordings.c:41
+msgid "Recordings"
+msgstr "録音一覧"#~ msgid "High performance"
 #~ msgstr "ハイパフォーマンス"
 
 #~ msgid "Low power"
@@ -3504,7 +3517,6 @@ msgstr "おだやか"
 #~ msgstr ""
 #~ "接続できません。気象データが古いようです。電話側のネット接続を確認して下さ"
 #~ "い。"
-
 #~ msgid "Scaled"
 #~ msgstr "拡大"
 

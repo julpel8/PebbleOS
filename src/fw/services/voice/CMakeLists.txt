@@ -4,6 +4,9 @@
 set(sources
   transcription.c
   voice.c
+  voice_recording.c
+  voice_recording_playback.c
+  voice_recording_storage.c
   voice_speex.c
 )
 pbl_library()

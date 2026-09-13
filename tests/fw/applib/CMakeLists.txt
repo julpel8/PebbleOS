@@ -1,6 +1,13 @@
 # SPDX-FileCopyrightText: 2026 Core Devices LLC
 # SPDX-License-Identifier: Apache-2.0
 
+pbl_clar_test(test_dictation_session
+  SOURCES
+    src/fw/applib/voice/dictation_session.c
+  DEFINES CONFIG_MIC
+  OVERRIDES dummy_board
+)
+
 pbl_clar_test(test_app_message
   SOURCES
     src/fw/applib/app_message/app_message.c

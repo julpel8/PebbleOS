@@ -3426,7 +3426,20 @@ msgstr "Martellante"
 msgid "Gentle"
 msgstr "Delicato"
 
-#~ msgid "High performance"
+#: ../src/fw/apps/system/settings/recordings.c:24
+#, c-format
+msgid "Used %u KB"
+msgstr ""
+
+#: ../src/fw/apps/system/settings/recordings.c:26
+#, c-format
+msgid "Free %u KB"
+msgstr ""
+
+#: ../src/fw/apps/system/settings/recordings.c:33
+#: ../src/fw/apps/system/settings/recordings.c:41
+msgid "Recordings"
+msgstr "Registrazioni"#~ msgid "High performance"
 #~ msgstr "Prestazioni elevate"
 
 #~ msgid "Low power"
@@ -3454,7 +3467,6 @@ msgstr "Delicato"
 #~ "Unable to connect. Your weather data may be out of date; try checking the "
 #~ "connection on your phone."
 #~ msgstr "Connessione fallita. I dati meteo potrebbero non essere aggiornati."
-
 #~ msgid "Default"
 #~ msgstr "Default"
 

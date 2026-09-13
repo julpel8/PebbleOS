@@ -288,6 +288,44 @@ pbl_clar_test(test_voice_endpoint
   OVERRIDES dummy_board
 )
 
+pbl_clar_test(test_voice
+  SOURCES
+    src/fw/services/voice/voice.c
+  DEFINES CONFIG_MIC
+  OVERRIDES dummy_board
+)
+
+pbl_clar_test(test_voice_recording
+  SOURCES
+    src/fw/services/voice/voice_recording.c
+  DEFINES CONFIG_MIC
+  OVERRIDES dummy_board
+)
+
+pbl_clar_test(test_voice_recording_playback
+  SOURCES
+    src/fw/services/voice/voice_recording_playback.c
+  DEFINES CONFIG_MIC
+  OVERRIDES dummy_board
+)
+
+pbl_clar_test(test_voice_recording_storage
+  SOURCES
+    src/fw/services/voice/voice_recording_storage.c
+    src/fw/services/filesystem/flash_translation.c
+    src/fw/services/filesystem/pfs.c
+    src/fw/system/hexdump.c
+    src/fw/flash_region/flash_region.c
+    src/fw/flash_region/filesystem_regions.c
+    tests/fakes/fake_spi_flash.c
+    src/fw/util/crc8.c
+    src/fw/util/legacy_checksum.c
+    tests/fakes/fake_rtc.c
+  PLATFORMS obelix
+  DEFINES DUMA_DISABLED
+  OVERRIDES dummy_board
+)
+
 pbl_clar_test(test_app_cache
   SOURCES
     src/fw/flash_region/flash_region.c

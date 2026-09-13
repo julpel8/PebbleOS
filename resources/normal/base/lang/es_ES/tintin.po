@@ -3495,7 +3495,20 @@ msgstr "Martillo neumático"
 msgid "Gentle"
 msgstr "Suave"
 
-#~ msgid "High performance"
+#: ../src/fw/apps/system/settings/recordings.c:24
+#, c-format
+msgid "Used %u KB"
+msgstr ""
+
+#: ../src/fw/apps/system/settings/recordings.c:26
+#, c-format
+msgid "Free %u KB"
+msgstr ""
+
+#: ../src/fw/apps/system/settings/recordings.c:33
+#: ../src/fw/apps/system/settings/recordings.c:41
+msgid "Recordings"
+msgstr "Grabaciones"#~ msgid "High performance"
 #~ msgstr "Alto rendimiento"
 
 #~ msgid "Low power"
@@ -3525,7 +3538,6 @@ msgstr "Suave"
 #~ msgstr ""
 #~ "No se puede conectar. Los datos del tiempo pueden estar desactualizados. "
 #~ "Comprueba la conexión con tu dispositivo."
-
 #~ msgid "Default"
 #~ msgstr "Normal"
 

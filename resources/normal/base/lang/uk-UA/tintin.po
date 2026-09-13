@@ -3494,7 +3494,20 @@ msgstr "Відбійний молот"
 msgid "Gentle"
 msgstr "Ніжно"
 
-#~ msgid "High performance"
+#: ../src/fw/apps/system/settings/recordings.c:24
+#, c-format
+msgid "Used %u KB"
+msgstr ""
+
+#: ../src/fw/apps/system/settings/recordings.c:26
+#, c-format
+msgid "Free %u KB"
+msgstr ""
+
+#: ../src/fw/apps/system/settings/recordings.c:33
+#: ../src/fw/apps/system/settings/recordings.c:41
+msgid "Recordings"
+msgstr "Записи"#~ msgid "High performance"
 #~ msgstr "Висока продуктивність"
 
 #~ msgid "Low power"
@@ -3524,7 +3537,6 @@ msgstr "Ніжно"
 #~ msgstr ""
 #~ "Не вдається підключитися. Ваші дані про погоду можуть бути застарілими; "
 #~ "спробуйте перевірити з’єднання на телефоні."
-
 #~ msgid "Default"
 #~ msgstr "За замовчуванням"
 

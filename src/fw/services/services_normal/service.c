@@ -38,6 +38,7 @@
 
 #include "pbl/services/activity/activity.h"
 #include "pbl/services/voice/voice.h"
+#include "pbl/services/voice/voice_recording.h"
 
 #include "pbl/util/size.h"
 
@@ -118,6 +119,7 @@ void services_normal_init(void) {
 
 #ifdef CONFIG_MIC
   voice_init();
+  voice_recording_init();
 #endif
 
   app_glance_service_init();

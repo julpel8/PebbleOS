@@ -3499,7 +3499,20 @@ msgstr "Martell pneumàtic"
 msgid "Gentle"
 msgstr "Suau"
 
-#~ msgid "High performance"
+#: ../src/fw/apps/system/settings/recordings.c:24
+#, c-format
+msgid "Used %u KB"
+msgstr ""
+
+#: ../src/fw/apps/system/settings/recordings.c:26
+#, c-format
+msgid "Free %u KB"
+msgstr ""
+
+#: ../src/fw/apps/system/settings/recordings.c:33
+#: ../src/fw/apps/system/settings/recordings.c:41
+msgid "Recordings"
+msgstr "Gravacions"#~ msgid "High performance"
 #~ msgstr "Alt rendiment"
 
 #~ msgid "Low power"
@@ -3529,7 +3542,6 @@ msgstr "Suau"
 #~ msgstr ""
 #~ "No es pot connectar. Les dades del temps poden estar desactualitzades; "
 #~ "comprova la connexió al telèfon."
-
 #~ msgid "Default"
 #~ msgstr "Per defecte"
 

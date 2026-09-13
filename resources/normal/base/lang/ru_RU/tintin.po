@@ -3495,7 +3495,20 @@ msgstr "Jackhammer"
 msgid "Gentle"
 msgstr "Gentle"
 
-#~ msgid "High performance"
+#: ../src/fw/apps/system/settings/recordings.c:24
+#, c-format
+msgid "Used %u KB"
+msgstr ""
+
+#: ../src/fw/apps/system/settings/recordings.c:26
+#, c-format
+msgid "Free %u KB"
+msgstr ""
+
+#: ../src/fw/apps/system/settings/recordings.c:33
+#: ../src/fw/apps/system/settings/recordings.c:41
+msgid "Recordings"
+msgstr "Recordings"#~ msgid "High performance"
 #~ msgstr "High performance"
 
 #~ msgid "Low power"
@@ -3528,7 +3541,6 @@ msgstr "Gentle"
 
 #~ msgid "Just Once"
 #~ msgstr "Just Once"
-
 #~ msgid "Default"
 #~ msgstr "Default"
 

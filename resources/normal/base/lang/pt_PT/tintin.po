@@ -3497,7 +3497,20 @@ msgstr "Britadeira"
 msgid "Gentle"
 msgstr "Suave"
 
-#~ msgid "High performance"
+#: ../src/fw/apps/system/settings/recordings.c:24
+#, c-format
+msgid "Used %u KB"
+msgstr ""
+
+#: ../src/fw/apps/system/settings/recordings.c:26
+#, c-format
+msgid "Free %u KB"
+msgstr ""
+
+#: ../src/fw/apps/system/settings/recordings.c:33
+#: ../src/fw/apps/system/settings/recordings.c:41
+msgid "Recordings"
+msgstr "Gravações"#~ msgid "High performance"
 #~ msgstr "Alto desempenho"
 
 #~ msgid "Low power"
@@ -3527,7 +3540,6 @@ msgstr "Suave"
 #~ msgstr ""
 #~ "Sem ligação. A informação de Tempo poderá estar desatualizada; verifique "
 #~ "a ligação no seu telefone."
-
 #~ msgid "Default"
 #~ msgstr "Padrão"
 
