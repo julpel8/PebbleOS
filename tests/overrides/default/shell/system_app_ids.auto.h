@@ -4,6 +4,7 @@
 #include "process_management/app_install_types.h"
 
 #define APP_ID_SIMPLICITY ((AppInstallId) -1)
+#define APP_ID_PTOP ((AppInstallId) -1)
 #define APP_ID_LOW_POWER_FACE ((AppInstallId) -2)
 #define APP_ID_MUSIC ((AppInstallId) -3)
 #define APP_ID_NOTIFICATIONS ((AppInstallId) -4)

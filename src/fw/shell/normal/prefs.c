@@ -11,6 +11,7 @@
 
 #include "apps/system/timeline/timeline.h"
 #include "apps/system/toggle/quiet_time.h"
+#include "apps/system_app_ids.h"
 #include "board/board.h"
 #include "applib/graphics/gtypes.h"
 #include <pbl/drivers/ambient_light.h>
@@ -1763,14 +1764,23 @@ static bool prv_set_default_any_watchface_enumerate_callback(AppInstallEntry *en
   return false;
 }
 
+static bool prv_is_usable_watchface(AppInstallId app_id) {
+  AppInstallEntry entry;
+  return (app_id != INSTALL_ID_INVALID) &&
+         app_install_get_entry_for_install_id(app_id, &entry) &&
+         app_install_entry_is_watchface(&entry);
+}
+
 AppInstallId watchface_get_default_install_id(void) {
   AppInstallId app_id = app_install_get_id_for_uuid(&s_default_watchface);
-  AppInstallEntry entry;
-  if (app_id == INSTALL_ID_INVALID ||
-      !app_install_get_entry_for_install_id(app_id, &entry) ||
-      !app_install_entry_is_watchface(&entry)) {
-    app_install_enumerate_entries(
-        prv_set_default_any_watchface_enumerate_callback, NULL);
+  if (!prv_is_usable_watchface(app_id)) {
+    // Ptop is the stock watchface; any other one only if it is missing.
+    if (prv_is_usable_watchface(APP_ID_PTOP)) {
+      watchface_set_default_install_id(APP_ID_PTOP);
+    } else {
+      app_install_enumerate_entries(
+          prv_set_default_any_watchface_enumerate_callback, NULL);
+    }
     app_id = app_install_get_id_for_uuid(&s_default_watchface);
   }
   return app_id;
