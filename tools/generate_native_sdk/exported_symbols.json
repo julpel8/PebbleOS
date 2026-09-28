@@ -4,7 +4,7 @@
               "You should also make sure you are obeying our API design guidelines:",
               "https://pebbletechnology.atlassian.net/wiki/display/DEV/SDK+API+Design+Guidelines"
             ],
-  "revision" : "110",
+  "revision" : "111",
   "version" : "2.0",
   "files": [
     "include/pbl/drivers/ambient_light.h",
@@ -134,6 +134,7 @@
     "fw/applib/app_smartstrap.h",
     "fw/applib/voice/dictation_session.h",
     "fw/applib/voice/audio_recording.h",
+    "fw/applib/system_metrics.h",
     "fw/applib/ui/content_indicator.h",
     "fw/applib/rockyjs/rocky.h",
     "fw/applib/unobstructed_area_service.h"
@@ -1110,6 +1111,31 @@
               "type": "function",
               "name": "audio_recording_transcribe",
               "addedRevision": "110"
+            }
+          ]
+        }, {
+          "type": "group",
+          "name": "SystemMetrics",
+          "addedRevision": "111",
+          "exports": [
+            {
+              "type": "type",
+              "name": "BatteryMetrics"
+            }, {
+              "type": "type",
+              "name": "CpuMetrics"
+            }, {
+              "type": "function",
+              "name": "battery_metrics_get",
+              "addedRevision": "111"
+            }, {
+              "type": "function",
+              "name": "cpu_metrics_get",
+              "addedRevision": "111"
+            }, {
+              "type": "function",
+              "name": "cpu_metrics_load_percent",
+              "addedRevision": "111"
             }
           ]
         }, {

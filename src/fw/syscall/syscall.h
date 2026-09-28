@@ -16,6 +16,7 @@
 #include "applib/event_service_client.h"
 #include "applib/fonts/fonts.h"
 #include "applib/graphics/gtypes.h"
+#include "applib/system_metrics.h"
 #include "applib/ui/window_stack_animation.h"
 #include "applib/voice/audio_recording.h"
 
@@ -114,6 +115,9 @@ bool sys_audio_recording_delete(AudioRecordingId recording_id);
 bool sys_audio_recording_play(AudioRecordingId recording_id);
 void sys_audio_recording_stop_playback(void);
 bool sys_audio_recording_is_playing(void);
+
+void sys_battery_metrics_get(BatteryMetrics *metrics);
+bool sys_cpu_metrics_get(CpuMetrics *metrics);
 
 void sys_get_app_uuid(Uuid *uuid);
 bool sys_app_is_watchface(void);
