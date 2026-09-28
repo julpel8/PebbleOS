@@ -72,6 +72,9 @@ static Uuid s_playback_owner = UUID_INVALID_INIT;
 static int s_pcm_export_fd = -1;
 static VoiceRecordingId s_pcm_export_id = VOICE_RECORDING_ID_INVALID;
 static PebbleTask s_pcm_export_owner_task = PebbleTask_Unknown;
+// Owner of the recording being exported, captured while the file could still be
+// opened. See voice_recording_is_owned_by().
+static Uuid s_pcm_export_app_uuid = UUID_INVALID_INIT;
 static uint32_t s_pcm_export_remaining;
 static uint32_t s_pcm_export_offset;
 static int16_t *s_pcm_export_frame;
@@ -93,6 +96,7 @@ static void prv_pcm_export_cleanup_locked(void) {
   }
   s_pcm_export_id = VOICE_RECORDING_ID_INVALID;
   s_pcm_export_owner_task = PebbleTask_Unknown;
+  s_pcm_export_app_uuid = UUID_INVALID;
   s_pcm_export_remaining = 0;
   s_pcm_export_offset = 0;
   s_pcm_export_frame_bytes = 0;
@@ -421,6 +425,11 @@ static bool prv_is_owned_by_locked(VoiceRecordingId id, const Uuid *app_uuid) {
   if ((s_active_id != VOICE_RECORDING_ID_INVALID) && (id == s_active_id)) {
     return uuid_equal(&s_app_uuid, app_uuid);
   }
+  // A PCM export keeps the file open, and PFS refuses a second open (E_BUSY), so
+  // use the owner captured when the export started.
+  if ((s_pcm_export_fd >= 0) && (s_pcm_export_id == id)) {
+    return uuid_equal(&s_pcm_export_app_uuid, app_uuid);
+  }
   VoiceRecordingStorageMetadata metadata;
   return voice_recording_storage_get_metadata(id, &metadata) &&
          uuid_equal(&metadata.app_uuid, app_uuid);
@@ -559,6 +568,7 @@ uint32_t voice_recording_read_pcm(VoiceRecordingId id, uint32_t offset, void *bu
     }
     s_pcm_export_id = id;
     s_pcm_export_owner_task = pebble_task_get_current();
+    s_pcm_export_app_uuid = metadata.app_uuid;
   } else if ((s_pcm_export_fd < 0) || (s_pcm_export_id != id) ||
              (s_pcm_export_offset != offset)) {
     goto unlock;
