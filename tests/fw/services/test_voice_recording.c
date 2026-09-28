@@ -145,6 +145,35 @@ void voice_speex_get_transfer_info(AudioTransferInfoSpeex *info) {
   *info = (AudioTransferInfoSpeex){};
 }
 
+bool voice_speex_decoder_init(void) {
+  return false;
+}
+
+void voice_speex_decoder_deinit(void) {
+}
+
+int voice_speex_get_decoder_frame_size(void) {
+  return 0;
+}
+
+int voice_speex_decode_frame(const uint8_t *encoded, int len, int16_t *out_pcm) {
+  return 0;
+}
+
+int voice_recording_storage_read_frame(int fd, uint32_t *remaining_bytes, uint8_t *frame_out,
+                                       size_t frame_out_size) {
+  return -1;
+}
+
+uint32_t voice_recording_storage_read(VoiceRecordingId id, uint32_t offset, void *buffer,
+                                      uint32_t buffer_size) {
+  return 0;
+}
+
+int voice_recording_storage_open_payload(VoiceRecordingId id, uint32_t *data_bytes_out) {
+  return -1;
+}
+
 void voice_recording_storage_init(VoiceRecordingId *next_id_out) {
   *next_id_out = 1;
 }
