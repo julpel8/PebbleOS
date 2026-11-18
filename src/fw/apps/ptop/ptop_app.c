@@ -6,8 +6,8 @@
 //! A watchface that shows what the system is doing: clock, battery, heap
 //! usage and the FreeRTOS task table, over a graph of the battery draw.
 //!
-//! Select changes the refresh period. The period is also the averaging
-//! window for the battery draw and the time step of the graph.
+//! Select changes the refresh period. The period is also the time step of
+//! the battery graph.
 
 #include "ptop_app.h"
 
@@ -36,8 +36,6 @@
 #include <stdio.h>
 #include <string.h>
 
-//! Sampling tick. The refresh period is a whole number of these.
-#define PTOP_TICK_MS 1000
 //! Tasks tracked at once. The system runs about a dozen.
 #define PTOP_MAX_TASKS 20
 //! History points kept per metric, one per refresh period.
@@ -82,7 +80,6 @@ typedef struct {
 
   char clock_text[8];
   char date_text[16];
-  int last_minute;
 
   uint32_t uptime_s;
   uint8_t battery_pct;
@@ -95,11 +92,6 @@ typedef struct {
   unsigned int kernel_used;
   unsigned int kernel_size;
 
-  //! Battery current accumulated since the last refresh.
-  int64_t current_sum;
-  uint16_t current_count;
-  uint8_t ticks;
-
   //! Battery current in tenths of a milliamp, negative while discharging.
   int16_t history[PTOP_HISTORY_LEN];
   uint8_t history_head;
@@ -111,8 +103,9 @@ typedef struct {
 
 static const uint8_t s_refresh_periods_s[] = {1, 2, 5, 10, 30, 60};
 
-//! Kept out of PtopData so the setting survives an app restart.
-static uint8_t s_period_index;
+//! Kept out of PtopData so the setting survives an app restart. Starts on the
+//! longest period, which redraws the least and saves battery.
+static uint8_t s_period_index = ARRAY_LENGTH(s_refresh_periods_s) - 1;
 
 static PtopData *s_data;
 
@@ -230,11 +223,9 @@ static void prv_update_clock(void) {
   strftime(s_data->clock_text, sizeof(s_data->clock_text),
            clock_is_24h_style() ? "%H:%M" : "%I:%M", &now);
   strftime(s_data->date_text, sizeof(s_data->date_text), "%a %d %b", &now);
-  s_data->last_minute = now.tm_min;
 }
 
-//! Read the battery. Called every tick so the draw can be averaged.
-static void prv_sample_current(void) {
+static void prv_sample_battery(void) {
   const BatteryChargeState charge = battery_state_service_peek();
   s_data->battery_pct = charge.charge_percent;
   s_data->battery_tte_s = battery_state_get_time_to_empty();
@@ -244,8 +235,7 @@ static void prv_sample_current(void) {
   s_data->battery_valid = (battery_get_constants(&constants) == 0);
   if (s_data->battery_valid) {
     s_data->battery_mv = constants.v_mv;
-    s_data->current_sum += constants.i_ua / 100;
-    s_data->current_count++;
+    s_data->battery_ua = constants.i_ua / 100;
   }
 }
 
@@ -258,15 +248,9 @@ static void prv_history_push(void) {
   }
 }
 
-//! Everything that only needs refreshing once per period.
 static void prv_sample(void) {
   s_data->uptime_s = rtc_get_ticks() / RTC_TICKS_HZ;
-
-  if (s_data->current_count) {
-    s_data->battery_ua = s_data->current_sum / s_data->current_count;
-  }
-  s_data->current_sum = 0;
-  s_data->current_count = 0;
+  prv_sample_battery();
 
   unsigned int used, free_bytes, max_free;
   heap_calc_totals(kernel_heap_get(), &used, &free_bytes, &max_free);
@@ -277,27 +261,25 @@ static void prv_sample(void) {
   prv_history_push();
 }
 
+static void prv_timer_callback(void *unused);
+
+//! Wakes on the next multiple of the period in wall time. Every period
+//! divides a minute, so the clock still turns over on time.
+static void prv_schedule(void) {
+  time_t now_s;
+  uint16_t now_ms;
+  rtc_get_time_ms(&now_s, &now_ms);
+
+  const uint32_t period_ms = prv_period_s() * 1000U;
+  const uint32_t into_ms = (uint32_t)(now_s % prv_period_s()) * 1000U + now_ms;
+  s_data->timer = app_timer_register(period_ms - into_ms, prv_timer_callback, NULL);
+}
+
 static void prv_timer_callback(void *unused) {
-  bool redraw = false;
-
-  prv_sample_current();
-
-  const int last_minute = s_data->last_minute;
   prv_update_clock();
-  if (s_data->last_minute != last_minute) {
-    redraw = true;
-  }
-
-  if (++s_data->ticks >= prv_period_s()) {
-    s_data->ticks = 0;
-    prv_sample();
-    redraw = true;
-  }
-
-  if (redraw) {
-    layer_mark_dirty(&s_data->canvas);
-  }
-  s_data->timer = app_timer_register(PTOP_TICK_MS, prv_timer_callback, NULL);
+  prv_sample();
+  layer_mark_dirty(&s_data->canvas);
+  prv_schedule();
 }
 
 static void prv_draw_text(GContext *ctx, const char *text, GFont font, GRect box,
@@ -574,7 +556,8 @@ static void prv_update_proc(Layer *layer, GContext *ctx) {
 //! change makes the history meaningless.
 static void prv_select_click(ClickRecognizerRef recognizer, void *context) {
   s_period_index = (s_period_index + 1) % ARRAY_LENGTH(s_refresh_periods_s);
-  s_data->ticks = 0;
+  app_timer_cancel(s_data->timer);
+  prv_schedule();
   s_data->history_head = 0;
   s_data->history_count = 0;
   layer_mark_dirty(&s_data->canvas);
@@ -608,9 +591,8 @@ static void prv_init(void) {
   app_window_stack_push(&s_data->window, false /* not animated */);
 
   prv_update_clock();
-  prv_sample_current();
   prv_sample();
-  s_data->timer = app_timer_register(PTOP_TICK_MS, prv_timer_callback, NULL);
+  prv_schedule();
 }
 
 static void prv_deinit(void) {
